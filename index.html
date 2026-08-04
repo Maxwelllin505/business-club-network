@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Club Network</title>
+<style>
+  :root{
+    --navy:#12213b;
+    --navy2:#1c3157;
+    --gold:#d4a53d;
+    --bg:#f4f6fa;
+    --card:#ffffff;
+    --text:#1b2436;
+    --muted:#6b7280;
+    --border:#e4e8f0;
+    --danger:#d9534f;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  a{color:inherit;text-decoration:none;}
+
+  /* ---------- TOP BAR (fixed) ---------- */
+  header.topbar{
+    position:sticky;top:0;z-index:50;
+    background:var(--navy);
+    color:#fff;
+    display:flex;align-items:center;gap:16px;
+    padding:10px 20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+  }
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;white-space:nowrap;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);}
+  .searchbar{
+    flex:1;max-width:520px;margin:0 auto;
+    display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:999px;padding:8px 16px;
+  }
+  .searchbar input{
+    background:transparent;border:none;outline:none;color:#fff;font-size:14px;width:100%;
+  }
+  .searchbar input::placeholder{color:rgba(255,255,255,.6);}
+  .topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+  .icon-btn{
+    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+    color:#fff;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.2);}
+  .role-select{
+    background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);
+    border-radius:8px;padding:7px 8px;font-size:12px;
+  }
+  .avatar{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--gold);color:var(--navy);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+  }
+
+  /* Page nav (tabs to switch between Home Page and Club Page demo views) */
+  .pagenav{
+    display:flex;gap:6px;background:var(--navy2);padding:6px 20px;position:sticky;top:53px;z-index:49;
+  }
+  .pagenav button{
+    background:transparent;border:none;color:rgba(255,255,255,.7);
+    padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;
+  }
+  .pagenav button.active{background:#fff;color:var(--navy);}
+
+  .app{max-width:900px;margin:0 auto;padding:18px 16px 60px;}
+
+  /* ---------- FILTER BAR ---------- */
+  .filterbar{
+    display:flex;gap:10px;flex-wrap:wrap;background:var(--card);
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 14px;margin-bottom:16px;
+  }
+  .filterbar select, .filterbar .chip{
+    border:1px solid var(--border);background:var(--bg);
+    border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text);cursor:pointer;
+  }
+  .filterbar .chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  /* ---------- REELS ROW ---------- */
+  .section-label{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 2px 10px;}
+  .reels-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:14px;margin-bottom:6px;}
+  .reel{
+    flex:0 0 auto;width:110px;height:180px;border-radius:14px;
+    background:linear-gradient(160deg,var(--navy),var(--navy2));
+    position:relative;color:#fff;overflow:hidden;cursor:pointer;
+    display:flex;align-items:flex-end;padding:8px;
+  }
+  .reel::before{content:"▶";position:absolute;top:8px;right:8px;font-size:11px;opacity:.8;}
+  .reel span{font-size:11px;font-weight:600;line-height:1.3;}
+  .reel .reelclub{position:absolute;top:8px;left:8px;font-size:9px;background:rgba(255,255,255,.2);padding:2px 6px;border-radius:6px;}
+
+  /* ---------- POST CARD (Home feed) ---------- */
+  .post{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:16px;overflow:hidden;
+  }
+  .post-head{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+  .post-head .meta{flex:1;min-width:0;}
+  .post-head .clubname{font-weight:700;font-size:14px;display:flex;align-items:center;gap:5px;}
+  .check{color:#2e9e5b;font-size:12px;}
+  .post-head .subline{font-size:12px;color:var(--muted);}
+  .menu-wrap{position:relative;}
+  .menu-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:4px 8px;}
+  .menu-dropdown{
+    display:none;position:absolute;right:0;top:28px;background:#fff;border:1px solid var(--border);
+    border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.12);min-width:150px;z-index:10;overflow:hidden;
+  }
+  .menu-dropdown.open{display:block;}
+  .menu-dropdown button{
+    width:100%;text-align:left;background:none;border:none;padding:9px 12px;font-size:13px;cursor:pointer;
+  }
+  .menu-dropdown button:hover{background:var(--bg);}
+  .menu-dropdown button.report{color:var(--danger);}
+  .post-media{
+    height:220px;background:linear-gradient(135deg,#dfe6f2,#c9d4ea);
+    display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;
+  }
+  .post-body{padding:12px 14px;}
+  .post-desc{font-size:14px;margin-bottom:8px;}
+  .post-actions{display:flex;gap:16px;padding:0 14px 12px;font-size:13px;color:var(--muted);}
+  .post-actions button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;display:flex;gap:5px;align-items:center;}
+  .post-actions button.locked{opacity:.4;cursor:not-allowed;}
+  .post-actions button.liked{color:var(--danger);font-weight:700;}
+  .comments{border-top:1px solid var(--border);padding:10px 14px;display:none;font-size:13px;}
+  .comments.open{display:block;}
+  .comments .row{display:flex;gap:8px;margin-bottom:8px;}
+  .comments input{flex:1;border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:13px;}
+  .comment-item{margin-bottom:6px;color:var(--text);}
+  .comment-item b{margin-right:6px;}
+
+  /* ---------- CLUB PAGE HEADER ---------- */
+  .club-header{border-radius:var(--radius);overflow:hidden;background:var(--card);border:1px solid var(--border);margin-bottom:16px;}
+  .banner{height:150px;background:linear-gradient(120deg,#1c3157,#3a5590,#d4a53d);position:relative;}
+  .banner .clubtitle{position:absolute;bottom:12px;left:18px;color:#fff;}
+  .banner .clubtitle h2{margin:0;font-size:22px;}
+  .banner .clubtitle p{margin:2px 0 0;font-size:12px;opacity:.85;}
+  .members-row{display:flex;gap:14px;padding:14px 18px;overflow-x:auto;}
+  .member-card{flex:0 0 auto;text-align:center;width:64px;}
+  .member-card .avatar{width:48px;height:48px;font-size:16px;margin:0 auto 6px;}
+  .member-card .name{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* ---------- STORY BAR ---------- */
+  .story-bar{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 16px;}
+  .story{flex:0 0 auto;text-align:center;width:66px;cursor:pointer;}
+  .story .ring{
+    width:58px;height:58px;border-radius:50%;padding:3px;
+    background:conic-gradient(var(--gold),var(--navy));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .story .ring .avatar{width:100%;height:100%;background:var(--navy2);color:#fff;}
+  .story .timer{font-size:10px;color:var(--muted);margin-top:4px;}
+  .story.expired{opacity:.35;}
+
+  /* ---------- DRAGGABLE POST GRID ---------- */
+  .grid-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .grid-toolbar .hint{font-size:12px;color:var(--muted);}
+  .post-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  }
+  .grid-block{
+    aspect-ratio:1/1;border-radius:10px;background:linear-gradient(135deg,#dfe6f2,#c9d4ea);
+    display:flex;align-items:center;justify-content:center;color:var(--navy2);font-size:12px;font-weight:600;
+    cursor:grab;border:2px solid transparent;text-align:center;padding:8px;position:relative;
+  }
+  .grid-block.dragging{opacity:.4;}
+  .grid-block.over{border-color:var(--gold);}
+  .grid-block .tag{position:absolute;top:6px;left:6px;font-size:9px;background:rgba(18,33,59,.75);color:#fff;padding:2px 6px;border-radius:6px;}
+
+  /* ---------- MODAL (Help) ---------- */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(10,14,25,.5);z-index:100;
+    align-items:center;justify-content:center;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{background:#fff;border-radius:14px;max-width:420px;width:90%;padding:22px;}
+  .modal h3{margin-top:0;}
+  .modal ul{padding-left:18px;font-size:13px;line-height:1.7;color:var(--text);}
+  .modal .close{float:right;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);}
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:200;
+  }
+  .toast.show{opacity:1;}
+
+  .role-note{
+    background:#fff7e6;border:1px solid #f0d999;border-radius:10px;padding:8px 12px;font-size:12px;
+    color:#7a5b12;margin-bottom:14px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> CCA Business Club Network</div>
+  <div class="searchbar">
+    <span>🔍</span>
+    <input id="searchInput" type="text" placeholder="Search clubs, students, posts...">
+  </div>
+  <div class="topbar-right">
+    <select class="role-select" id="roleSelect">
+      <option value="public">Public Account</option>
+      <option value="student">Student Account</option>
+      <option value="business" selected>Business Club Account</option>
+      <option value="staff">Staff Account</option>
+    </select>
+    <button class="icon-btn" id="helpBtn">❓ Help</button>
+    <div class="avatar" id="acctAvatar">M</div>
+  </div>
+</header>
+
+<nav class="pagenav">
+  <button class="active" data-page="home">Home Page</button>
+  <button data-page="club">Individual Business Club Page</button>
+</nav>
+
+<div class="app">
+
+  <!-- ================= HOME PAGE ================= -->
+  <section id="page-home">
+    <div class="filterbar">
+      <select><option>All Schools</option><option>CCA</option><option>Bay Area HS</option><option>Lincoln HS</option></select>
+      <select><option>All Topics</option><option>Competitions</option><option>Fundraisers</option><option>Workshops</option></select>
+      <select><option>All Time</option><option>Today</option><option>This Week</option><option>This Month</option></select>
+      <div class="chip active">For You</div>
+      <div class="chip">Following</div>
+    </div>
+
+    <div class="section-label">Reels</div>
+    <div class="reels-row" id="reelsRow"></div>
+
+    <div class="section-label">Feed</div>
+    <div id="feed"></div>
+  </section>
+
+  <!-- ================= CLUB PAGE ================= -->
+  <section id="page-club" style="display:none;">
+    <div class="role-note" id="clubOwnerNote">You're viewing this page as a <b>Business Club Account</b> — you can drag posts to rearrange them and edit page content.</div>
+
+    <div class="club-header">
+      <div class="banner">
+        <div class="clubtitle">
+          <h2>CCA Business Club</h2>
+          <p>California Crosspoint Academy · National Economics Challenge 2026</p>
+        </div>
+      </div>
+      <div class="section-label" style="padding:12px 18px 0;">Member Introduction</div>
+      <div class="members-row" id="membersRow"></div>
+    </div>
+
+    <div class="section-label">Stories · disappear after 24 hrs</div>
+    <div class="story-bar" id="storyRow"></div>
+
+    <div class="filterbar">
+      <div class="chip active" data-type="all">All Posts</div>
+      <div class="chip" data-type="event">Events</div>
+      <div class="chip" data-type="achievement">Achievements</div>
+      <div class="chip" data-type="fundraiser">Fundraisers</div>
+      <select><option>Newest</option><option>Oldest</option></select>
+    </div>
+
+    <div class="grid-toolbar">
+      <div class="section-label" style="margin:0;">Posts</div>
+      <div class="hint">Drag a tile to reorder (Business Club / Staff accounts only)</div>
+    </div>
+    <div class="post-grid" id="postGrid"></div>
+  </section>
+
+</div>
+
+<div class="modal-backdrop" id="helpModal">
+  <div class="modal">
+    <button class="close" id="closeHelp">✕</button>
+    <h3>Website Instructions</h3>
+    <ul>
+      <li><b>Search Bar</b> — find clubs, students, or posts across schools.</li>
+      <li><b>Filter system</b> — narrow the feed or a club page by school, topic, date, or post type.</li>
+      <li><b>Reels</b> — short-form video posts, swipe through the horizontal row.</li>
+      <li><b>Report system</b> — flag a post from its ⋮ menu; staff review all reports.</li>
+      <li><b>Account roles</b> — Public (view/like only), Student (like/comment/save/repost/share), Business Club (edit own page, reply to comments), Staff (edit any post, view reports).</li>
+      <li><b>Stories</b> — time-limited posts on a club page that expire automatically after 24 hrs.</li>
+      <li><b>Posts Placement</b> — business club accounts can drag grid tiles to customize their page layout.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- MOCK DATA (reflects the Business Club doc) ---------------- */
+const clubs = ["CCA Business Club","Lincoln HS Econ Society","Bayview Entrepreneurs"];
+
+const reels = [
+  {club:"CCA Business Club", label:"Pitch night recap"},
+  {club:"Lincoln HS Econ Society", label:"Market sim highlights"},
+  {club:"Bayview Entrepreneurs", label:"Fundraiser bake sale"},
+  {club:"CCA Business Club", label:"Officer intros"},
+  {club:"Lincoln HS Econ Society", label:"Guest speaker clip"},
+];
+
+const feedPosts = [
+  {
+    club:"CCA Business Club", confirmed:true, date:"Aug 2, 2026", responsible:"Maxwell Lin",
+    desc:"We're officially registered for the National Economics Challenge! Practice sessions start next week — sign up on the club page.",
+    commentsOpen:true, likes:34, comments:[{name:"Michelle",text:"Let's go!! 🎉"},{name:"Ethan",text:"Signing up now"}]
+  },
+  {
+    club:"Bayview Entrepreneurs", confirmed:true, date:"Jul 30, 2026", responsible:"Sara K.",
+    desc:"Our spring fundraiser raised $1,240 for club competition travel costs. Thank you to everyone who baked and bought!",
+    commentsOpen:false, likes:51, comments:[]
+  },
+  {
+    club:"Lincoln HS Econ Society", confirmed:false, date:"Jul 29, 2026", responsible:"D. Park",
+    desc:"Workshop this Friday on supply & demand modeling — open to all Bay Area business club members.",
+    commentsOpen:true, likes:12, comments:[{name:"Anna",text:"Can non-members join?"}]
+  },
+];
+
+const members = [
+  {name:"Maxwell Lin", role:"President"},
+  {name:"Michelle", role:"Vice President"},
+  {name:"Ethan R.", role:"Treasurer"},
+  {name:"Sara K.", role:"Secretary"},
+  {name:"D. Park", role:"Events Lead"},
+];
+
+const stories = [
+  {name:"Officer Meetup", expired:false},
+  {name:"Booth Setup", expired:false},
+  {name:"Practice Round", expired:false},
+  {name:"Sponsor Visit", expired:true},
+];
+
+const gridPosts = [
+  {type:"event", label:"Pitch Night — Sept 12"},
+  {type:"achievement", label:"Regional Qualifier 🏆"},
+  {type:"fundraiser", label:"Bake Sale Recap"},
+  {type:"event", label:"Guest Speaker: Alum Founder"},
+  {type:"achievement", label:"New Member Record: 40+"},
+  {type:"fundraiser", label:"Sponsor Drive"},
+];
+
+/* ---------------- ROLE / PERMISSIONS ---------------- */
+const rolePerms = {
+  public:   {like:true,  comment:false, save:false, repost:false, share:false, editPage:false, drag:false},
+  student:  {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:false, drag:false},
+  business: {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
+  staff:    {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
+};
+let currentRole = "business";
+
+function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------------- RENDER: REELS ---------------- */
+function renderReels(){
+  const row=document.getElementById("reelsRow");
+  row.innerHTML = reels.map(r=>`
+    <div class="reel" title="${r.club}: ${r.label}">
+      <div class="reelclub">${r.club.split(" ")[0]}</div>
+      <span>${r.label}</span>
+    </div>`).join("");
+}
+
+/* ---------------- RENDER: HOME FEED ---------------- */
+function renderFeed(){
+  const feed=document.getElementById("feed");
+  feed.innerHTML = feedPosts.map((p,i)=>`
+    <article class="post" data-i="${i}">
+      <div class="post-head">
+        <div class="avatar">${initials(p.club)}</div>
+        <div class="meta">
+          <div class="clubname">${p.club} ${p.confirmed?'<span class="check">✔</span>':''}</div>
+          <div class="subline">${p.date} · Posted by ${p.responsible}</div>
+        </div>
+        <div class="menu-wrap">
+          <button class="menu-btn" onclick="toggleMenu(this)">⋮</button>
+          <div class="menu-dropdown">
+            <button onclick="toast('Saved to your bookmarks')">Save</button>
+            <button onclick="toast('Repost shared to your feed')">Repost</button>
+            <button class="report" onclick="toast('Reported — staff will review this post')">Report post</button>
+          </div>
+        </div>
+      </div>
+      <div class="post-media">📷 Photo / Video attached</div>
+      <div class="post-body"><div class="post-desc">${p.desc}</div></div>
+      <div class="post-actions">
+        <button onclick="toggleLike(this,${i})">❤️ <span class="likecount">${p.likes}</span></button>
+        <button onclick="toggleComments(${i})">💬 ${p.comments.length} Comment${p.comments.length!==1?'s':''}</button>
+        <button onclick="toast('Saved')">🔖 Save</button>
+        <button onclick="toast('Shared')">↗ Share</button>
+      </div>
+      <div class="comments" id="comments-${i}">
+        ${p.comments.map(c=>`<div class="comment-item"><b>${c.name}</b>${c.text}</div>`).join("")}
+        <div class="row">
+          <input placeholder="Add a comment..." id="commentInput-${i}">
+          <button class="icon-btn" style="background:var(--navy);color:#fff;border:none;" onclick="addComment(${i})">Post</button>
+        </div>
+      </div>
+    </article>
+  `).join("");
+  applyPermissions();
+}
+
+function toggleMenu(btn){
+  document.querySelectorAll(".menu-dropdown.open").forEach(d=>{ if(d!==btn.nextElementSibling) d.classList.remove("open"); });
+  btn.nextElementSibling.classList.toggle("open");
+}
+document.addEventListener("click",(e)=>{
+  if(!e.target.closest(".menu-wrap")) document.querySelectorAll(".menu-dropdown.open").forEach(d=>d.classList.remove("open"));
+});
+
+function toggleLike(btn,i){
+  const perms=rolePerms[currentRole];
+  if(!perms.like) return;
+  const span=btn.querySelector(".likecount");
+  const liked=btn.classList.toggle("liked");
+  span.textContent = liked ? feedPosts[i].likes+1 : feedPosts[i].likes;
+}
+
+function toggleComments(i){
+  document.getElementById(`comments-${i}`).classList.toggle("open");
+}
+
+function addComment(i){
+  const perms=rolePerms[currentRole];
+  const input=document.getElementById(`commentInput-${i}`);
+  if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
+  if(!input.value.trim()) return;
+  feedPosts[i].comments.push({name: currentRole==="business" ? feedPosts[i].club : "You", text:input.value.trim()});
+  input.value="";
+  renderFeed();
+  document.getElementById(`comments-${i}`).classList.add("open");
+}
+
+/* ---------------- RENDER: CLUB PAGE ---------------- */
+function renderMembers(){
+  document.getElementById("membersRow").innerHTML = members.map(m=>`
+    <div class="member-card">
+      <div class="avatar">${initials(m.name)}</div>
+      <div class="name">${m.name}</div>
+      <div class="name" style="color:var(--gold);">${m.role}</div>
+    </div>`).join("");
+}
+
+function renderStories(){
+  document.getElementById("storyRow").innerHTML = stories.map(s=>`
+    <div class="story ${s.expired?'expired':''}" onclick="${s.expired?`toast('This story has expired')`:`toast('Opening story: ${s.name}')`}">
+      <div class="ring"><div class="avatar">${initials(s.name)}</div></div>
+      <div class="timer">${s.expired?'Expired':'22h left'}</div>
+    </div>`).join("");
+}
+
+let dragSrcIndex=null;
+function renderGrid(filter="all"){
+  const grid=document.getElementById("postGrid");
+  const perms=rolePerms[currentRole];
+  const list = filter==="all" ? gridPosts : gridPosts.filter(p=>p.type===filter);
+  grid.innerHTML = list.map((p,i)=>`
+    <div class="grid-block" draggable="${perms.drag}" data-i="${gridPosts.indexOf(p)}">
+      <span class="tag">${p.type}</span>
+      ${p.label}
+    </div>`).join("");
+
+  if(!perms.drag) return;
+  const blocks=grid.querySelectorAll(".grid-block");
+  blocks.forEach(b=>{
+    b.addEventListener("dragstart", e=>{ dragSrcIndex=+b.dataset.i; b.classList.add("dragging"); });
+    b.addEventListener("dragend", e=>{ b.classList.remove("dragging"); });
+    b.addEventListener("dragover", e=>{ e.preventDefault(); b.classList.add("over"); });
+    b.addEventListener("dragleave", e=>{ b.classList.remove("over"); });
+    b.addEventListener("drop", e=>{
+      e.preventDefault(); b.classList.remove("over");
+      const targetIndex=+b.dataset.i;
+      const [moved]=gridPosts.splice(dragSrcIndex,1);
+      gridPosts.splice(targetIndex,0,moved);
+      renderGrid(currentFilter);
+      toast("Layout updated");
+    });
+  });
+}
+
+let currentFilter="all";
+document.querySelectorAll('[data-type]').forEach(chip=>{
+  chip.addEventListener("click",()=>{
+    document.querySelectorAll('[data-type]').forEach(c=>c.classList.remove("active"));
+    chip.classList.add("active");
+    currentFilter=chip.dataset.type;
+    renderGrid(currentFilter);
+  });
+});
+
+/* ---------------- PERMISSIONS / ROLE SWITCH ---------------- */
+function applyPermissions(){
+  const perms=rolePerms[currentRole];
+  document.querySelectorAll(".post-actions button").forEach(btn=>{
+    const isLike=btn.textContent.includes("❤️");
+    const isComment=btn.textContent.includes("💬");
+    const isSave=btn.textContent.includes("🔖");
+    const isShare=btn.textContent.includes("↗");
+    let allowed=true;
+    if(isLike) allowed=perms.like;
+    if(isComment) allowed=true; // always openable to read; posting is gated
+    if(isSave) allowed=perms.save;
+    if(isShare) allowed=perms.share;
+    btn.classList.toggle("locked", !allowed);
+  });
+  document.getElementById("acctAvatar").textContent =
+    currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "St" : "M";
+
+  const note=document.getElementById("clubOwnerNote");
+  if(currentRole==="business"){ note.style.display="block"; note.innerHTML="You're viewing this page as a <b>Business Club Account</b> — you can drag posts to rearrange them and edit page content."; }
+  else if(currentRole==="staff"){ note.style.display="block"; note.innerHTML="You're viewing as <b>Staff</b> — you can edit any post on this page and view its report history."; }
+  else { note.style.display="none"; }
+
+  renderGrid(currentFilter);
+}
+
+document.getElementById("roleSelect").addEventListener("change",(e)=>{
+  currentRole=e.target.value;
+  applyPermissions();
+  renderFeed();
+  toast(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
+});
+
+/* ---------------- PAGE NAV ---------------- */
+document.querySelectorAll(".pagenav button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".pagenav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("page-home").style.display = btn.dataset.page==="home" ? "block":"none";
+    document.getElementById("page-club").style.display = btn.dataset.page==="club" ? "block":"none";
+  });
+});
+
+/* ---------------- HELP MODAL ---------------- */
+document.getElementById("helpBtn").addEventListener("click",()=>document.getElementById("helpModal").classList.add("open"));
+document.getElementById("closeHelp").addEventListener("click",()=>document.getElementById("helpModal").classList.remove("open"));
+document.getElementById("helpModal").addEventListener("click",(e)=>{ if(e.target.id==="helpModal") e.target.classList.remove("open"); });
+
+/* ---------------- SEARCH (demo) ---------------- */
+document.getElementById("searchInput").addEventListener("input",(e)=>{
+  const q=e.target.value.toLowerCase();
+  document.querySelectorAll("#feed .post").forEach(post=>{
+    const i=+post.dataset.i;
+    const text=(feedPosts[i].club+" "+feedPosts[i].desc).toLowerCase();
+    post.style.display = text.includes(q) ? "block" : "none";
+  });
+});
+
+/* ---------------- INIT ---------------- */
+renderReels();
+renderFeed();
+renderMembers();
+renderStories();
+renderGrid();
+</script>
+</body>
+</html>
