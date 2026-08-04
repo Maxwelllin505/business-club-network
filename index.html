@@ -196,6 +196,62 @@
     background:#fff7e6;border:1px solid #f0d999;border-radius:10px;padding:8px 12px;font-size:12px;
     color:#7a5b12;margin-bottom:14px;
   }
+
+  /* ---------- NEW POST BUTTON + MODAL ---------- */
+  .new-post-btn{
+    background:var(--navy);color:#fff;border:none;border-radius:999px;
+    padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+  }
+  .new-post-btn:hover{background:var(--navy2);}
+  .modal.wide{max-width:480px;}
+  .form-group{margin-bottom:14px;}
+  .form-group label{
+    display:block;font-size:12px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;
+  }
+  .form-group .req{color:var(--danger);}
+  .form-group input[type=text], .form-group input[type=date], .form-group textarea, .form-group select{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:14px;
+    font-family:inherit;color:var(--text);
+  }
+  .form-group textarea{resize:vertical;min-height:70px;}
+  .form-row{display:flex;gap:10px;}
+  .form-row .form-group{flex:1;}
+  .dropzone{
+    border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;
+    cursor:pointer;color:var(--muted);font-size:13px;position:relative;overflow:hidden;
+  }
+  .dropzone:hover{border-color:var(--gold);}
+  .dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .dropzone.has-file{border-style:solid;border-color:var(--navy2);padding:0;}
+  .dropzone img{width:100%;max-height:180px;object-fit:cover;display:block;}
+  .dropzone .filename{padding:8px 12px;font-size:12px;color:var(--text);background:var(--bg);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;}
+  .switch{position:relative;width:40px;height:22px;flex:0 0 auto;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .slider{
+    position:absolute;inset:0;background:var(--border);border-radius:999px;cursor:pointer;transition:.2s;
+  }
+  .switch .slider::before{
+    content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;
+    background:#fff;border-radius:50%;transition:.2s;
+  }
+  .switch input:checked + .slider{background:var(--navy);}
+  .switch input:checked + .slider::before{transform:translateX(18px);}
+  .form-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+  .form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .btn-secondary{
+    background:var(--bg);border:1px solid var(--border);color:var(--text);
+    border-radius:999px;padding:9px 16px;font-size:13px;cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--navy);border:none;color:#fff;
+    border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--navy2);}
+  .field-error{color:var(--danger);font-size:11px;margin-top:4px;display:none;}
+  .field-error.show{display:block;}
 </style>
 </head>
 <body>
@@ -270,11 +326,82 @@
 
     <div class="grid-toolbar">
       <div class="section-label" style="margin:0;">Posts</div>
-      <div class="hint">Drag a tile to reorder (Business Club / Staff accounts only)</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="hint">Drag a tile to reorder (Business Club / Staff accounts only)</div>
+        <button class="new-post-btn" id="newPostBtn">+ New Post</button>
+      </div>
     </div>
     <div class="post-grid" id="postGrid"></div>
   </section>
 
+</div>
+
+<div class="modal-backdrop" id="postModal">
+  <div class="modal wide">
+    <button class="close" id="closePostModal">✕</button>
+    <h3>New Post</h3>
+    <div class="form-hint" style="margin:-8px 0 16px;">Every post needs media, a description, a date, and a responsible contact — matching the club's posting rules.</div>
+    <form id="newPostForm">
+      <div class="form-group">
+        <label>Photo / Video <span class="req">*</span></label>
+        <div class="dropzone" id="dropzone">
+          <span id="dropzoneLabel">Click or drag a file here to attach</span>
+          <input type="file" id="postMedia" accept="image/*,video/*">
+        </div>
+        <div class="field-error" id="err-media">Please attach at least one photo or video.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Description <span class="req">*</span></label>
+        <textarea id="postDesc" placeholder="What's this post about?"></textarea>
+        <div class="field-error" id="err-desc">Description is required.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" id="postDate">
+        </div>
+        <div class="form-group">
+          <label>Post Type</label>
+          <select id="postType">
+            <option value="event">Event</option>
+            <option value="achievement">Achievement</option>
+            <option value="fundraiser">Fundraiser</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Responsible Person <span class="req">*</span></label>
+          <input type="text" id="postResponsible" placeholder="Full name">
+          <div class="field-error" id="err-responsible">Responsible person is required.</div>
+        </div>
+        <div class="form-group">
+          <label>Contact Info <span class="req">*</span></label>
+          <input type="text" id="postContact" placeholder="Email or phone">
+          <div class="field-error" id="err-contact">Contact info is required.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="toggle-row">
+          <label style="margin:0;">Open comment section</label>
+          <label class="switch">
+            <input type="checkbox" id="postCommentsOpen" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-hint">Business club accounts can choose whether commenting is allowed on this post.</div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="cancelPostBtn">Cancel</button>
+        <button type="submit" class="btn-primary">Publish Post</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="modal-backdrop" id="helpModal">
@@ -395,7 +522,7 @@ function renderFeed(){
           </div>
         </div>
       </div>
-      <div class="post-media">📷 Photo / Video attached</div>
+      <div class="post-media">${p.media ? `<img src="${p.media}" style="width:100%;height:100%;object-fit:cover;">` : "📷 Photo / Video attached"}</div>
       <div class="post-body"><div class="post-desc">${p.desc}</div></div>
       <div class="post-actions">
         <button onclick="toggleLike(this,${i})">❤️ <span class="likecount">${p.likes}</span></button>
@@ -470,7 +597,7 @@ function renderGrid(filter="all"){
   const perms=rolePerms[currentRole];
   const list = filter==="all" ? gridPosts : gridPosts.filter(p=>p.type===filter);
   grid.innerHTML = list.map((p,i)=>`
-    <div class="grid-block" draggable="${perms.drag}" data-i="${gridPosts.indexOf(p)}">
+    <div class="grid-block" draggable="${perms.drag}" data-i="${gridPosts.indexOf(p)}" style="${p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:""}">
       <span class="tag">${p.type}</span>
       ${p.label}
     </div>`).join("");
@@ -526,6 +653,9 @@ function applyPermissions(){
   else if(currentRole==="staff"){ note.style.display="block"; note.innerHTML="You're viewing as <b>Staff</b> — you can edit any post on this page and view its report history."; }
   else { note.style.display="none"; }
 
+  const newPostBtn=document.getElementById("newPostBtn");
+  if(newPostBtn) newPostBtn.style.display = perms.editPage ? "flex" : "none";
+
   renderGrid(currentFilter);
 }
 
@@ -559,6 +689,104 @@ document.getElementById("searchInput").addEventListener("input",(e)=>{
     const text=(feedPosts[i].club+" "+feedPosts[i].desc).toLowerCase();
     post.style.display = text.includes(q) ? "block" : "none";
   });
+});
+
+/* ---------------- NEW POST (mock upload) ---------------- */
+let pendingMedia = null; // data URL of the selected file, for preview + mock "upload"
+
+function resetPostForm(){
+  document.getElementById("newPostForm").reset();
+  document.getElementById("postDate").value = new Date().toISOString().slice(0,10);
+  pendingMedia = null;
+  const dz=document.getElementById("dropzone");
+  dz.classList.remove("has-file");
+  dz.innerHTML = `<span id="dropzoneLabel">Click or drag a file here to attach</span><input type="file" id="postMedia" accept="image/*,video/*">`;
+  document.getElementById("postMedia").addEventListener("change", handleMediaSelect);
+  document.querySelectorAll(".field-error").forEach(e=>e.classList.remove("show"));
+}
+
+function handleMediaSelect(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const dz=document.getElementById("dropzone");
+  if(file.type.startsWith("image/")){
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      pendingMedia = ev.target.result;
+      dz.classList.add("has-file");
+      dz.innerHTML = `<img src="${pendingMedia}"><div class="filename">📎 ${file.name}</div>`;
+      // re-attach a fresh input on top so the user can still swap the file
+      const input=document.createElement("input");
+      input.type="file"; input.id="postMedia"; input.accept="image/*,video/*";
+      input.style.position="absolute"; input.style.inset="0"; input.style.opacity="0"; input.style.cursor="pointer";
+      input.addEventListener("change", handleMediaSelect);
+      dz.appendChild(input);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // video or other file: we don't render a live preview, just acknowledge the attachment (mock upload)
+    pendingMedia = "video";
+    dz.classList.add("has-file");
+    dz.innerHTML = `<div class="filename">🎬 ${file.name} attached (video preview not rendered in this mock)</div>`;
+    const input=document.createElement("input");
+    input.type="file"; input.id="postMedia"; input.accept="image/*,video/*";
+    input.style.position="absolute"; input.style.inset="0"; input.style.opacity="0"; input.style.cursor="pointer";
+    input.addEventListener("change", handleMediaSelect);
+    dz.appendChild(input);
+  }
+}
+
+function openPostModal(){
+  resetPostForm();
+  document.getElementById("postModal").classList.add("open");
+}
+function closePostModal(){
+  document.getElementById("postModal").classList.remove("open");
+}
+
+document.getElementById("newPostBtn").addEventListener("click", openPostModal);
+document.getElementById("closePostModal").addEventListener("click", closePostModal);
+document.getElementById("cancelPostBtn").addEventListener("click", closePostModal);
+document.getElementById("postModal").addEventListener("click",(e)=>{ if(e.target.id==="postModal") closePostModal(); });
+document.getElementById("postMedia").addEventListener("change", handleMediaSelect);
+
+document.getElementById("newPostForm").addEventListener("submit",(e)=>{
+  e.preventDefault();
+
+  const desc = document.getElementById("postDesc").value.trim();
+  const date = document.getElementById("postDate").value;
+  const responsible = document.getElementById("postResponsible").value.trim();
+  const contact = document.getElementById("postContact").value.trim();
+  const type = document.getElementById("postType").value;
+  const commentsOpen = document.getElementById("postCommentsOpen").checked;
+
+  // Validate against the club's posting rules: media + description + date + responsible contact are all required.
+  let valid = true;
+  const setErr = (id, show)=>{ document.getElementById(id).classList.toggle("show", show); };
+  setErr("err-media", !pendingMedia); if(!pendingMedia) valid=false;
+  setErr("err-desc", !desc); if(!desc) valid=false;
+  setErr("err-responsible", !responsible); if(!responsible) valid=false;
+  setErr("err-contact", !contact); if(!contact) valid=false;
+  if(!valid){ toast("Please fill in all required fields"); return; }
+
+  const dateLabel = new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  const mediaUrl = pendingMedia === "video" ? null : pendingMedia;
+
+  // Add to the club page grid
+  gridPosts.unshift({
+    type, label: desc.length>40 ? desc.slice(0,40)+"…" : desc, media: mediaUrl
+  });
+
+  // Add to the home feed too, so both layouts can be validated together
+  feedPosts.unshift({
+    club:"CCA Business Club", confirmed:true, date: dateLabel, responsible: `${responsible} (${contact})`,
+    desc, commentsOpen, likes:0, comments:[], media: mediaUrl
+  });
+
+  renderGrid(currentFilter);
+  renderFeed();
+  closePostModal();
+  toast("Post published — check the Home feed and the grid above");
 });
 
 /* ---------------- INIT ---------------- */
