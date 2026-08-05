@@ -54,6 +54,11 @@
     background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);
     border-radius:8px;padding:7px 8px;font-size:12px;
   }
+  .identity-label{
+    color:#fff;font-size:12px;line-height:1.3;text-align:right;
+  }
+  .identity-label b{display:block;font-size:13px;}
+  .identity-label span{color:rgba(255,255,255,.65);}
   .avatar{
     width:30px;height:30px;border-radius:50%;
     background:var(--gold);color:var(--navy);
@@ -155,6 +160,23 @@
   .banner .clubtitle{position:absolute;bottom:12px;left:18px;color:#fff;}
   .banner .clubtitle h2{margin:0;font-size:22px;}
   .banner .clubtitle p{margin:2px 0 0;font-size:12px;opacity:.85;}
+  .event-countdown{
+    margin-top:6px;display:inline-flex;align-items:center;gap:5px;
+    background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;color:#fff;
+  }
+  .cc-countdown{
+    margin-top:6px;font-size:11px;font-weight:600;color:var(--gold);
+  }
+  .recap-card{
+    background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  }
+  .recap-card .recap-date{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;}
+  .recap-card .recap-attendees{font-size:12px;color:var(--muted);margin-bottom:8px;}
+  .recap-card .recap-summary{font-size:14px;margin-bottom:8px;}
+  .recap-card .recap-actions-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+  .recap-card ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6;}
+  .recap-card .recap-delete{float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;}
   .members-row{display:flex;gap:14px;padding:14px 18px;overflow-x:auto;}
   .member-card{flex:0 0 auto;text-align:center;width:64px;cursor:pointer;}
   .member-card .avatar{width:48px;height:48px;font-size:16px;margin:0 auto 6px;}
@@ -366,18 +388,13 @@
     <input id="searchInput" type="text" placeholder="Search clubs, students, posts...">
   </div>
   <div class="topbar-right">
-    <select class="role-select" id="roleSelect">
-      <option value="public" selected>Public Account</option>
-      <option value="student">Student Account</option>
-      <option value="business">Club Manager Account</option>
-      <option value="staff">Administrator Account</option>
-    </select>
-    <select class="role-select" id="clubSelect" style="display:none;"></select>
-    <select class="role-select" id="studentSelect" style="display:none;"></select>
+    <div class="identity-label" id="identityLabel" style="display:none;"></div>
+    <button class="icon-btn" id="logoutBtn" style="display:none;">Log Out</button>
+    <button class="icon-btn" id="loginBtn" style="display:none;">Log In</button>
     <button class="icon-btn" id="recordStatusBtn" style="display:none;" title="Save the current state as the live default for every visitor">💾 Record Status</button>
     <button class="icon-btn" id="resetDefaultBtn" style="display:none;" title="Reset the live site back to its original defaults for every visitor">↺ Reset Default</button>
     <button class="icon-btn" id="helpBtn">❓ Help</button>
-    <div class="avatar" id="acctAvatar">M</div>
+    <div class="avatar" id="acctAvatar">P</div>
   </div>
 </header>
 
@@ -433,6 +450,7 @@
         <div class="clubtitle">
           <h2 id="clubPageTitle">CCA Business Club</h2>
           <p id="clubPageTagline">California Crosspoint Academy · National Economics Challenge 2026</p>
+          <div class="event-countdown" id="clubEventCountdown" style="display:none;"></div>
         </div>
         <button class="icon-btn" id="editClubBtn" style="position:absolute;top:12px;right:12px;display:none;">✏️ Edit Page</button>
       </div>
@@ -442,6 +460,12 @@
 
     <div class="section-label">Stories · disappear after 24 hrs</div>
     <div class="story-bar" id="storyRow"></div>
+
+    <div class="grid-toolbar">
+      <div class="section-label" style="margin:0;">Meeting Recaps</div>
+      <button class="new-post-btn" id="newRecapBtn" style="padding:6px 12px;font-size:12px;">+ Add Recap</button>
+    </div>
+    <div id="meetingRecapsList"></div>
 
     <div class="grid-toolbar">
       <div class="section-label" style="margin:0;">Reels</div>
@@ -548,21 +572,22 @@
 </div>
 
 <div class="modal-backdrop" id="adminLoginModal">
-  <div class="modal" style="max-width:360px;">
-    <h3 style="margin-bottom:4px;">Administrator Login</h3>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">Enter the administrator passcode to unlock full moderation and account-level controls.</p>
+  <div class="modal" style="max-width:380px;">
+    <h3 style="margin-bottom:4px;">Club Member Login</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">Enter the email your club officer has on file for you. First time logging in? Just pick a passcode and we'll set up your account.</p>
     <div class="form-group">
       <label>Email</label>
-      <input type="text" id="adminLoginEmail" value="admin@ccabusinessclub.org" readonly style="background:#f2f4f8;color:var(--muted);">
+      <input type="text" id="loginEmail" placeholder="you@school.edu" autocomplete="off">
     </div>
     <div class="form-group">
       <label>Passcode</label>
-      <input type="password" id="adminLoginPasscode" placeholder="Enter passcode" autocomplete="off">
-      <div class="field-error" id="err-adminpasscode">Incorrect passcode. Try again.</div>
+      <input type="password" id="loginPasscode" placeholder="Choose or enter your passcode" autocomplete="off">
+      <div class="field-error" id="err-loginpasscode">Incorrect passcode. Try again.</div>
     </div>
+    <div class="form-hint" id="loginStatusMsg" style="min-height:16px;"></div>
     <div class="form-actions" style="justify-content:space-between;">
       <button type="button" class="btn-secondary" id="publicModeBtn">Public Account Mode</button>
-      <button type="button" class="btn-primary" id="adminLoginSubmit">Log In</button>
+      <button type="button" class="btn-primary" id="loginSubmitBtn">Log In</button>
     </div>
   </div>
 </div>
@@ -660,6 +685,17 @@
       <textarea id="editClubTagline" placeholder="Short description shown under the club name"></textarea>
       <div class="field-error" id="err-clubtagline">Please enter a description.</div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Featured Event Name</label>
+        <input type="text" id="editEventName" placeholder="e.g. National Economics Challenge — Regional Round">
+      </div>
+      <div class="form-group">
+        <label>Featured Event Date</label>
+        <input type="date" id="editEventDate">
+      </div>
+    </div>
+    <div class="form-hint" style="margin:-8px 0 12px;">Shown as a live countdown on this club's page and its home page card. Leave the name blank to hide it.</div>
     <div class="form-group">
       <label>Member Introduction</label>
       <div id="editMembersList"></div>
@@ -684,6 +720,35 @@
     <div class="form-actions">
       <button type="button" class="btn-secondary" id="cancelReelBtn">Cancel</button>
       <button type="button" class="btn-primary" id="saveReelBtn">Add Reel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="addRecapModal">
+  <div class="modal wide">
+    <button class="close" id="closeAddRecapModal">✕</button>
+    <h3>Add Meeting Recap</h3>
+    <div class="form-group">
+      <label>Meeting Date <span class="req">*</span></label>
+      <input type="date" id="recapDate">
+      <div class="field-error" id="err-recapdate">Please pick a date.</div>
+    </div>
+    <div class="form-group">
+      <label>Attendees</label>
+      <input type="text" id="recapAttendees" placeholder="Comma-separated names, e.g. Maxwell Lin, Michelle, Wilson Lin">
+    </div>
+    <div class="form-group">
+      <label>Summary <span class="req">*</span></label>
+      <textarea id="recapSummary" placeholder="What did the club cover in this meeting?"></textarea>
+      <div class="field-error" id="err-recapsummary">Please enter a summary.</div>
+    </div>
+    <div class="form-group">
+      <label>Action Items</label>
+      <textarea id="recapActionItems" placeholder="One per line, e.g.&#10;Wilson to send the schedule by Friday&#10;D. Park to book the room"></textarea>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" id="cancelRecapBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="saveRecapBtn">Add Recap</button>
     </div>
   </div>
 </div>
@@ -757,9 +822,19 @@
 const clubs = ["CCA Business Club","Lincoln HS Econ Society","Bayview Entrepreneurs"];
 
 const clubMeta = {
-  "CCA Business Club": {tagline:"California Crosspoint Academy · National Economics Challenge 2026"},
-  "Lincoln HS Econ Society": {tagline:"Lincoln High School · Economics & Finance Club"},
-  "Bayview Entrepreneurs": {tagline:"Bayview High School · Student Entrepreneurship Club"},
+  "CCA Business Club": {tagline:"California Crosspoint Academy · National Economics Challenge 2026", nextEvent:{name:"National Economics Challenge — Regional Round", date:"2026-09-12"}},
+  "Lincoln HS Econ Society": {tagline:"Lincoln High School · Economics & Finance Club", nextEvent:{name:"Market Simulation Day", date:"2026-08-20"}},
+  "Bayview Entrepreneurs": {tagline:"Bayview High School · Student Entrepreneurship Club", nextEvent:{name:"Fall Pitch Workshop", date:"2026-08-28"}},
+};
+
+const clubMeetingRecaps = {
+  "CCA Business Club": [
+    {date:"2026-08-01", attendees:["Maxwell Lin","Michelle","Wilson Lin","D. Park"],
+     summary:"Kicked off National Economics Challenge prep — split into practice teams and reviewed the scoring format.",
+     actionItems:["Wilson to send the practice-round schedule by Friday","D. Park to book the room for weekly practice"]},
+  ],
+  "Lincoln HS Econ Society": [],
+  "Bayview Entrepreneurs": [],
 };
 
 const clubReels = {
@@ -877,6 +952,7 @@ async function hydrateFromServer(){
     if(s.clubStories){ Object.keys(clubStories).forEach(k=>delete clubStories[k]); Object.assign(clubStories, s.clubStories); }
     if(s.clubGridPosts){ Object.keys(clubGridPosts).forEach(k=>delete clubGridPosts[k]); Object.assign(clubGridPosts, s.clubGridPosts); }
     if(s.clubReels){ Object.keys(clubReels).forEach(k=>delete clubReels[k]); Object.assign(clubReels, s.clubReels); }
+    if(s.clubMeetingRecaps){ Object.keys(clubMeetingRecaps).forEach(k=>delete clubMeetingRecaps[k]); Object.assign(clubMeetingRecaps, s.clubMeetingRecaps); }
     if(typeof s.nextId==="number") nextId = s.nextId;
     return true;
   }catch(e){
@@ -924,6 +1000,14 @@ function applySeedDefaults(){
       m.joined = m.joined || "";
       m.bio = m.bio || "";
     });
+    if(!clubMeta[club].nextEvent) clubMeta[club].nextEvent = {name:"", date:""};
+    if(!clubMeetingRecaps[club]) clubMeetingRecaps[club] = [];
+    clubMeetingRecaps[club].forEach(r=>{
+      if(r.id===undefined) r.id = nextId++;
+      r.attendees = r.attendees || [];
+      r.actionItems = r.actionItems || [];
+      r.summary = r.summary || "";
+    });
   });
 }
 
@@ -955,8 +1039,7 @@ let currentRole = "public";
 let currentClub = null; // which club's Club Manager account is "logged in" (only meaningful when currentRole === "business") — set once the club list is finalized (after server hydration, if any)
 let currentViewedClub = null; // which club's Individual Business Club Page is currently on screen — set the same way
 let currentStudentMemberId = null; // which student member "you" are logged in as (only meaningful when currentRole === "student")
-const ADMIN_PASSCODE = "0928485217";
-let adminUnlocked = false; // in-memory only (never persisted) — resets to false on every page load/refresh/reopen, so Administrator always requires the passcode again
+let currentMember = null; // {id, name, email, club, accountLevels} for the real logged-in account, or null if Public
 const followedClubs = ["CCA Business Club"]; // mock: the demo account follows its own club
 
 // Administrators (staff) can delete any post/story. A Club Manager account can only delete posts/stories that belong to ITS OWN club.
@@ -994,29 +1077,6 @@ function canManageAccountLevels(){
 }
 
 /* ---------------- CLUB IDENTITY (name / description / roster edits) ---------------- */
-function rebuildClubSelectOptions(){
-  const clubSelect = document.getElementById("clubSelect");
-  clubSelect.innerHTML = clubs.map(c=>`<option value="${c}">${c} (Club Manager)</option>`).join("");
-  clubSelect.value = clubs.includes(currentClub) ? currentClub : clubs[0];
-}
-
-// Lets the demo pick WHICH student "you" are logged in as, since Student is a shared role across many members.
-function getAllStudentMembers(){
-  const list = [];
-  clubs.forEach(c=> clubMembers[c].forEach(m=>{
-    if((m.accountLevels||[]).includes("Student Account")) list.push({id:m.id, name:m.name, club:c});
-  }));
-  return list;
-}
-function rebuildStudentSelectOptions(){
-  const sel = document.getElementById("studentSelect");
-  const list = getAllStudentMembers();
-  sel.innerHTML = list.map(x=>`<option value="${x.id}">${x.name} — ${x.club}</option>`).join("");
-  if(!list.some(x=>x.id===currentStudentMemberId)){
-    currentStudentMemberId = list.length ? list[0].id : null;
-  }
-  if(currentStudentMemberId!==null) sel.value = currentStudentMemberId;
-}
 function rebuildHomeSchoolFilterOptions(){
   const hsf = document.getElementById("homeSchoolFilter");
   const prevVal = hsf.value;
@@ -1065,15 +1125,19 @@ function toast(msg){
 function renderClubsRow(){
   const row=document.getElementById("clubsRow");
   if(!row) return;
-  row.innerHTML = clubs.map(c=>`
+  row.innerHTML = clubs.map(c=>{
+    const cd = countdownText(clubMeta[c].nextEvent);
+    return `
     <div class="club-card" onclick="navigateToClub('${c.replace(/'/g,"\\'")}')">
       <div class="cc-banner"></div>
       <div class="cc-body">
         <div class="cc-name">${c}</div>
         <div class="cc-tagline">${clubMeta[c].tagline}</div>
+        ${cd ? `<div class="cc-countdown">${cd}</div>` : ""}
         <div class="cc-link">View Club Page →</div>
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 /* ---------------- RENDER: REELS (Home Page, all clubs, filterable by school) ---------------- */
@@ -1220,10 +1284,103 @@ function renderClubPage(){
   document.getElementById("clubPageTagline").textContent = clubMeta[currentViewedClub].tagline;
   renderMembers();
   renderStories();
+  renderEventCountdown();
+  renderMeetingRecaps();
   renderClubReels();
   renderGrid(currentFilter);
   applyPermissions();
 }
+
+/* ---------------- EVENT COUNTDOWN ---------------- */
+function countdownText(nextEvent){
+  if(!nextEvent || !nextEvent.date || !nextEvent.name) return null;
+  const target = new Date(nextEvent.date + "T00:00:00");
+  if(isNaN(target.getTime())) return null;
+  const diffMs = target - new Date();
+  const oneDay = 24*60*60*1000;
+  if(diffMs <= -oneDay) return null; // already passed
+  const days = Math.ceil(diffMs / oneDay);
+  const when = days > 1 ? `${days} days` : days === 1 ? "tomorrow" : "today";
+  return `🗓 ${nextEvent.name} — ${when}`;
+}
+function renderEventCountdown(){
+  const el = document.getElementById("clubEventCountdown");
+  if(!el) return;
+  const text = countdownText(clubMeta[currentViewedClub].nextEvent);
+  el.textContent = text || "";
+  el.style.display = text ? "inline-flex" : "none";
+}
+
+/* ---------------- MEETING RECAPS ---------------- */
+function renderMeetingRecaps(){
+  const list = document.getElementById("meetingRecapsList");
+  if(!list) return;
+  const club = currentViewedClub;
+  const recaps = (clubMeetingRecaps[club] || []).slice().sort((a,b)=> new Date(b.date) - new Date(a.date));
+  const manage = canManageClubPage();
+  list.innerHTML = recaps.length ? recaps.map(r=>`
+    <div class="recap-card">
+      ${manage ? `<button class="recap-delete" onclick="deleteMeetingRecap(${r.id})">🗑 Delete</button>` : ""}
+      <div class="recap-date">${formatRecapDate(r.date)}</div>
+      ${r.attendees && r.attendees.length ? `<div class="recap-attendees">Attendees: ${r.attendees.join(", ")}</div>` : ""}
+      <div class="recap-summary">${r.summary}</div>
+      ${r.actionItems && r.actionItems.length ? `
+        <div class="recap-actions-label">Action Items</div>
+        <ul>${r.actionItems.map(a=>`<li>${a}</li>`).join("")}</ul>
+      ` : ""}
+    </div>
+  `).join("") : `<div class="form-hint">No meeting recaps yet.</div>`;
+}
+function formatRecapDate(iso){
+  const d = new Date(iso + "T00:00:00");
+  if(isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {month:"short", day:"numeric", year:"numeric"});
+}
+function deleteMeetingRecap(id){
+  askConfirm("Delete this meeting recap? This can't be undone.", ()=>{
+    const club = currentViewedClub;
+    clubMeetingRecaps[club] = (clubMeetingRecaps[club]||[]).filter(r=>r.id!==id);
+    renderMeetingRecaps();
+    toast("Meeting recap deleted");
+  });
+}
+function openAddRecapModal(){
+  if(!canManageClubPage()){ toast("You don't have permission to add a recap for this club"); return; }
+  document.getElementById("recapDate").value = "";
+  document.getElementById("recapAttendees").value = "";
+  document.getElementById("recapSummary").value = "";
+  document.getElementById("recapActionItems").value = "";
+  document.getElementById("err-recapdate").classList.remove("show");
+  document.getElementById("err-recapsummary").classList.remove("show");
+  document.getElementById("addRecapModal").classList.add("open");
+}
+function closeAddRecapModal(){
+  document.getElementById("addRecapModal").classList.remove("open");
+}
+document.getElementById("newRecapBtn").addEventListener("click", openAddRecapModal);
+document.getElementById("closeAddRecapModal").addEventListener("click", closeAddRecapModal);
+document.getElementById("cancelRecapBtn").addEventListener("click", closeAddRecapModal);
+document.getElementById("addRecapModal").addEventListener("click",(e)=>{ if(e.target.id==="addRecapModal") closeAddRecapModal(); });
+document.getElementById("saveRecapBtn").addEventListener("click", ()=>{
+  if(!canManageClubPage()){ toast("You don't have permission to add a recap for this club"); return; }
+  const date = document.getElementById("recapDate").value;
+  const summary = document.getElementById("recapSummary").value.trim();
+  const dateErr = document.getElementById("err-recapdate");
+  const summaryErr = document.getElementById("err-recapsummary");
+  let valid = true;
+  dateErr.classList.toggle("show", !date); if(!date) valid = false;
+  summaryErr.classList.toggle("show", !summary); if(!summary) valid = false;
+  if(!valid) return;
+
+  const attendees = document.getElementById("recapAttendees").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const actionItems = document.getElementById("recapActionItems").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const club = currentViewedClub;
+  clubMeetingRecaps[club] = clubMeetingRecaps[club] || [];
+  clubMeetingRecaps[club].push({id: nextId++, date, attendees, summary, actionItems});
+  renderMeetingRecaps();
+  closeAddRecapModal();
+  toast("Meeting recap added");
+});
 
 function renderMembers(){
   const club = currentViewedClub;
@@ -1575,24 +1732,22 @@ function applyPermissions(){
     if(isShare) allowed=perms.share;
     btn.classList.toggle("locked", !allowed);
   });
-  const clubSelect = document.getElementById("clubSelect");
-  if(currentRole==="business"){
-    rebuildClubSelectOptions();
-    clubSelect.style.display = "block";
-  } else {
-    clubSelect.style.display = "none";
-  }
-
-  const studentSelect = document.getElementById("studentSelect");
-  if(currentRole==="student"){
-    rebuildStudentSelectOptions();
-    studentSelect.style.display = "block";
-  } else {
-    studentSelect.style.display = "none";
-  }
-
   document.getElementById("acctAvatar").textContent =
     currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "Ad" : initials(currentClub);
+
+  const identityLabel = document.getElementById("identityLabel");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  if(currentMember){
+    identityLabel.style.display = "block";
+    identityLabel.innerHTML = `<b>${currentMember.name}</b><span>${currentMember.club} · ${roleLabel(currentRole)}</span>`;
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "flex";
+  } else {
+    identityLabel.style.display = "none";
+    loginBtn.style.display = "flex";
+    logoutBtn.style.display = "none";
+  }
 
   const note=document.getElementById("clubOwnerNote");
   const manage = canManageClubPage();
@@ -1615,6 +1770,10 @@ function applyPermissions(){
   const editClubBtn=document.getElementById("editClubBtn");
   if(editClubBtn) editClubBtn.style.display = manage ? "flex" : "none";
 
+  const newRecapBtn=document.getElementById("newRecapBtn");
+  if(newRecapBtn) newRecapBtn.style.display = manage ? "flex" : "none";
+  renderMeetingRecaps(); // re-render so each recap's delete button reflects the current permission
+
   const isAdmin = currentRole==="staff";
   const recordBtn=document.getElementById("recordStatusBtn");
   const resetBtn=document.getElementById("resetDefaultBtn");
@@ -1626,70 +1785,131 @@ function applyPermissions(){
   renderClubReels();
 }
 
-document.getElementById("roleSelect").addEventListener("change",(e)=>{
-  const newRole = e.target.value;
-  if(newRole==="staff" && !adminUnlocked){
-    e.target.value = currentRole; // revert the dropdown until login succeeds
-    openAdminLoginModal();
-    return;
-  }
-  currentRole=newRole;
-  if(currentRole==="business" && !currentClub) currentClub = clubs[0];
-  applyPermissions();
-  renderFeed();
-  toast(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
-});
+/* ---------------- LOGIN / SIGNUP (real accounts tied to the club roster) ---------------- */
+const SESSION_KEY = "ccaSessionToken";
 
-/* ---------------- ADMIN LOGIN GATE ---------------- */
-function openAdminLoginModal(){
-  document.getElementById("adminLoginPasscode").value = "";
-  document.getElementById("err-adminpasscode").classList.remove("show");
+function roleFromAccountLevels(levels){
+  if((levels||[]).includes("Administrator Account")) return "staff";
+  if((levels||[]).includes("Club Manager Account")) return "business";
+  if((levels||[]).includes("Student Account")) return "student";
+  return "public";
+}
+function roleLabel(role){
+  return role==="staff" ? "Administrator" : role==="business" ? "Club Manager" : role==="student" ? "Student" : "Public";
+}
+function applyMemberIdentity(member){
+  currentMember = member; // {id, name, email, club, accountLevels}
+  currentRole = roleFromAccountLevels(member.accountLevels);
+  if(currentRole==="business") currentClub = member.club;
+  if(currentRole==="student") currentStudentMemberId = member.id;
+}
+function logOutLocally(){
+  currentMember = null;
+  currentRole = "public";
+  currentStudentMemberId = null;
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function openAdminLoginModal(){ // login gate modal (name kept for backward compatibility with earlier code)
+  document.getElementById("loginEmail").value = "";
+  document.getElementById("loginPasscode").value = "";
+  document.getElementById("err-loginpasscode").classList.remove("show");
+  document.getElementById("loginStatusMsg").textContent = "";
   document.getElementById("adminLoginModal").classList.add("open");
-  document.getElementById("adminLoginPasscode").focus();
+  document.getElementById("loginEmail").focus();
 }
 function closeAdminLoginModal(){
   document.getElementById("adminLoginModal").classList.remove("open");
 }
-function submitAdminLogin(){
-  const val = document.getElementById("adminLoginPasscode").value.trim();
-  const err = document.getElementById("err-adminpasscode");
-  if(val === ADMIN_PASSCODE){
-    adminUnlocked = true;
-    currentRole = "staff";
-    document.getElementById("roleSelect").value = "staff";
-    closeAdminLoginModal();
-    applyPermissions();
-    renderFeed();
-    toast("Logged in as Administrator");
-  } else {
+
+async function submitLogin(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const passcode = document.getElementById("loginPasscode").value;
+  const err = document.getElementById("err-loginpasscode");
+  const statusMsg = document.getElementById("loginStatusMsg");
+  err.classList.remove("show");
+  if(!email || !passcode){
+    statusMsg.textContent = "Enter both your email and a passcode.";
+    return;
+  }
+  statusMsg.textContent = "Checking...";
+  try{
+    const res = await fetch("/api/auth", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({action:"login", email, passcode})
+    });
+    const data = await res.json();
+    if(data.ok){
+      localStorage.setItem(SESSION_KEY, data.token);
+      applyMemberIdentity(data.member);
+      closeAdminLoginModal();
+      applyPermissions();
+      renderFeed();
+      toast(`Logged in as ${data.member.name}`);
+      return;
+    }
+    if(data.reason==="no-account"){
+      // First-time login for this email: sign up with the passcode they just entered.
+      const signupRes = await fetch("/api/auth", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({action:"signup", email, passcode})
+      });
+      const signupData = await signupRes.json();
+      if(signupData.ok){
+        localStorage.setItem(SESSION_KEY, signupData.token);
+        applyMemberIdentity(signupData.member);
+        closeAdminLoginModal();
+        applyPermissions();
+        renderFeed();
+        toast(`Account set up — welcome, ${signupData.member.name}!`);
+      } else {
+        statusMsg.textContent = signupData.error || "We couldn't find that email in the club roster. Ask your club officer to add you as a member first.";
+      }
+      return;
+    }
     err.classList.add("show");
+    statusMsg.textContent = "";
+  }catch(e){
+    statusMsg.textContent = "Couldn't reach the login server. Try again in a moment.";
   }
 }
-document.getElementById("adminLoginSubmit").addEventListener("click", submitAdminLogin);
-document.getElementById("adminLoginPasscode").addEventListener("keydown",(e)=>{
-  if(e.key==="Enter") submitAdminLogin();
+document.getElementById("loginSubmitBtn").addEventListener("click", submitLogin);
+document.getElementById("loginPasscode").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") submitLogin();
 });
 document.getElementById("publicModeBtn").addEventListener("click", ()=>{
-  currentRole = "public";
-  document.getElementById("roleSelect").value = "public";
+  logOutLocally();
   closeAdminLoginModal();
   applyPermissions();
   renderFeed();
   toast("Switched to Public Account");
 });
-
-document.getElementById("clubSelect").addEventListener("change",(e)=>{
-  currentClub = e.target.value;
+document.getElementById("loginBtn").addEventListener("click", openAdminLoginModal);
+document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+  const token = localStorage.getItem(SESSION_KEY);
+  logOutLocally();
   applyPermissions();
   renderFeed();
-  toast(`Now managing as ${currentClub}`);
+  toast("Logged out");
+  if(token){
+    try{ await fetch("/api/auth", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"logout", token})}); }catch(e){}
+  }
 });
 
-document.getElementById("studentSelect").addEventListener("change",(e)=>{
-  currentStudentMemberId = +e.target.value;
-  const found = findMemberById(currentStudentMemberId);
-  toast(found ? `Now logged in as ${found.member.name} (${found.club})` : "Now logged in as that student");
-});
+async function restoreSession(){
+  const token = localStorage.getItem(SESSION_KEY);
+  if(!token) return false;
+  try{
+    const res = await fetch("/api/auth", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"session", token})});
+    const data = await res.json();
+    if(data.ok){
+      applyMemberIdentity(data.member);
+      return true;
+    }
+  }catch(e){}
+  localStorage.removeItem(SESSION_KEY);
+  return false;
+}
 
 /* ---------------- HOME PAGE FILTERS ---------------- */
 let currentHomeFeedTab = "foryou";
@@ -1721,7 +1941,7 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
 /* ---------------- HELP MODAL ---------------- */
 /* ---------------- RECORD STATUS / RESET TO DEFAULT (Administrator only, shared for every visitor) ---------------- */
 async function saveState(){
-  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, feedPosts, followedClubs, nextId };
+  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, feedPosts, followedClubs, nextId };
   try{
     const res = await fetch("/api/state", {
       method: "POST",
@@ -1797,9 +2017,9 @@ const helpTopics = [
     purpose:"Good for short-lived announcements that don't need to stay on the page.",
     usage:"View a club's Stories row on its page. Club Managers and Administrators can delete a story early with its ✕."},
   {id:13, title:"Account Roles", keywords:["role","account type","public student club manager administrator","switch account"],
-    summary:"Switch between Public, Student, Club Manager, and Administrator accounts to preview each experience.",
-    purpose:"Lets you test what each type of account can see and do.",
-    usage:"Use the account dropdown in the top-right. A Student account also picks which student you're logged in as; a Club Manager account picks which club you manage. Switching to Administrator requires the admin passcode — see \"Administrator Login\"."},
+    summary:"Your role (Public, Student, Club Manager, or Administrator) is determined automatically by your real account.",
+    purpose:"Every member's account levels decide what they can see and do — nobody manually picks a role anymore.",
+    usage:"Log in with your email and passcode. Your account's levels (set on your member profile) decide your role: Administrator if you have that level, otherwise Club Manager, otherwise Student. See \"Club Member Login\" for how to log in."},
   {id:14, title:"Editing a Club Page", keywords:["edit club","rename club","club description","club name"],
     summary:"Change a club's name, description, and member roster.",
     purpose:"Keeps a club's public page accurate as officers and details change.",
@@ -1824,10 +2044,18 @@ const helpTopics = [
     summary:"Save the current live state as the shared default, or reset it back to the original.",
     purpose:"Lets an Administrator lock in edits (posts, profiles, reels, club pages) so every visitor sees them after a reload — or undo everything back to the original demo data.",
     usage:"As an Administrator, use \"💾 Record Status\" in the top bar to save the current state for everyone, or \"↺ Reset Default\" to wipe it back to the original mock data."},
-  {id:20, title:"Administrator Login", keywords:["login","log in","passcode","password","admin login","public account mode","locked out"],
-    summary:"A passcode gate protects Administrator access.",
-    purpose:"Keeps the powerful Administrator abilities (deleting anyone's content, editing any profile, granting account levels) from being reachable by just picking it from a dropdown.",
-    usage:"Every time the page loads or refreshes, a login screen appears asking for the administrator passcode. Enter it to unlock Administrator mode for the rest of this browser tab, or click \"Public Account Mode\" if you don't know the passcode to continue as a Public account. You'll need to log in again after refreshing or reopening the tab — this isn't saved anywhere."},
+  {id:20, title:"Club Member Login", keywords:["login","log in","signup","sign up","passcode","password","account","public account mode","logout","log out"],
+    summary:"Real accounts tied to actual club members, not a role you pick from a dropdown.",
+    purpose:"Ties every post, edit, and profile to a real person instead of a simulated role, while still letting a visitor without an account browse as Public.",
+    usage:"Enter the email your club officer has on file for you. First time logging in, just choose a passcode and your account is set up automatically — no separate signup step. Your role (Student, Club Manager, or Administrator) comes from your account levels. Once logged in you stay logged in on this device until you click \"Log Out\". If you don't have an account or don't know your passcode, click \"Public Account Mode\" to browse as a visitor."},
+  {id:21, title:"Meeting Recaps", keywords:["meeting","recap","minutes","attendees","action items","summary"],
+    summary:"A structured record of each club meeting — date, attendees, summary, and action items.",
+    purpose:"Keeps a running history of what the club discussed and who owes what, instead of losing it in a group chat.",
+    usage:"On your own club's page, click \"+ Add Recap\" under Meeting Recaps to log a meeting's date, who attended, a short summary, and any action items (one per line). Club Managers and Administrators can add or delete recaps for their club."},
+  {id:22, title:"Event Countdown", keywords:["countdown","event","days until","upcoming event","national economics challenge"],
+    summary:"A live countdown to each club's next big event, shown on its page and its home page card.",
+    purpose:"Keeps everyone aware of how much time is left before the club's next major event (like a competition round).",
+    usage:"Club Managers and Administrators set the event name and date from \"Edit Page\" on the club's own page. It shows as a badge (e.g. \"🗓 12 days until...\") until the date passes; leave the event name blank to hide it."},
 ];
 
 function renderHelpList(query){
@@ -2204,6 +2432,9 @@ function syncMemberDraftFromDom(){
 function openEditClubModal(){
   document.getElementById("editClubName").value = currentViewedClub;
   document.getElementById("editClubTagline").value = clubMeta[currentViewedClub].tagline;
+  const ev = clubMeta[currentViewedClub].nextEvent || {name:"", date:""};
+  document.getElementById("editEventName").value = ev.name || "";
+  document.getElementById("editEventDate").value = ev.date || "";
   renderEditMembersList(clubMembers[currentViewedClub].map(m=>({...m})));
   document.getElementById("err-clubname").classList.remove("show");
   document.getElementById("err-clubtagline").classList.remove("show");
@@ -2245,6 +2476,10 @@ document.getElementById("saveEditClubBtn").addEventListener("click", ()=>{
 
   const oldName = currentViewedClub;
   clubMeta[oldName].tagline = newTagline;
+  clubMeta[oldName].nextEvent = {
+    name: document.getElementById("editEventName").value.trim(),
+    date: document.getElementById("editEventDate").value
+  };
   clubMembers[oldName] = newMembers;
   if(newName !== oldName) renameClub(oldName, newName);
 
@@ -2267,7 +2502,13 @@ async function initApp(){
   renderReels();
   renderFeed();
   renderClubPage();
-  openAdminLoginModal(); // every fresh load starts logged out — must enter the passcode or choose Public Account Mode
+  const restored = await restoreSession();
+  if(restored){
+    applyPermissions();
+    renderFeed();
+  } else {
+    openAdminLoginModal(); // no valid session on this device — must log in (or sign up) or choose Public Account Mode
+  }
 }
 initApp();
 </script>
