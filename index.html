@@ -374,6 +374,8 @@
     </select>
     <select class="role-select" id="clubSelect" style="display:none;"></select>
     <select class="role-select" id="studentSelect" style="display:none;"></select>
+    <button class="icon-btn" id="recordStatusBtn" style="display:none;" title="Save the current state as the live default for every visitor">💾 Record Status</button>
+    <button class="icon-btn" id="resetDefaultBtn" style="display:none;" title="Reset the live site back to its original defaults for every visitor">↺ Reset Default</button>
     <button class="icon-btn" id="helpBtn">❓ Help</button>
     <div class="avatar" id="acctAvatar">M</div>
   </div>
@@ -835,43 +837,75 @@ const clubGridPosts = {
   ],
 };
 
-/* ---------------- IDs + shared shape so posts/comments/stories/reels can be deleted and zoomed into ---------------- */
+/* ---------------- SHARED PERSISTENCE (Administrator-only "Record Status" / "Reset to Default") ----------------
+   The page normally starts from the hardcoded seed data above. If an Administrator has ever clicked
+   "Record Status", the live server (Vercel KV, via /api/state) holds a full snapshot instead — every
+   visitor's browser hydrates from that snapshot on load instead of the hardcoded seed. */
+async function hydrateFromServer(){
+  try{
+    const res = await fetch("/api/state");
+    if(!res.ok) return false;
+    const data = await res.json();
+    const s = data && data.state;
+    if(!s) return false;
+
+    if(Array.isArray(s.clubs)){ clubs.length = 0; clubs.push(...s.clubs); }
+    if(Array.isArray(s.feedPosts)){ feedPosts.length = 0; feedPosts.push(...s.feedPosts); }
+    if(Array.isArray(s.followedClubs)){ followedClubs.length = 0; followedClubs.push(...s.followedClubs); }
+    if(s.clubMeta){ Object.keys(clubMeta).forEach(k=>delete clubMeta[k]); Object.assign(clubMeta, s.clubMeta); }
+    if(s.clubMembers){ Object.keys(clubMembers).forEach(k=>delete clubMembers[k]); Object.assign(clubMembers, s.clubMembers); }
+    if(s.clubStories){ Object.keys(clubStories).forEach(k=>delete clubStories[k]); Object.assign(clubStories, s.clubStories); }
+    if(s.clubGridPosts){ Object.keys(clubGridPosts).forEach(k=>delete clubGridPosts[k]); Object.assign(clubGridPosts, s.clubGridPosts); }
+    if(s.clubReels){ Object.keys(clubReels).forEach(k=>delete clubReels[k]); Object.assign(clubReels, s.clubReels); }
+    if(typeof s.nextId==="number") nextId = s.nextId;
+    return true;
+  }catch(e){
+    console.warn("Could not load shared site state, falling back to defaults:", e);
+    return false;
+  }
+}
+
+/* ---------------- IDs + shared shape so posts/comments/stories/reels can be deleted and zoomed into ----------------
+   Idempotent: if hydrateFromServer() already restored real ids/fields, nothing here overwrites them —
+   this only fills in blanks, so it's safe to run whether the data came from the seed or from the server. */
 let nextId = 1000;
-feedPosts.forEach(p=>{
-  p.id = nextId++;
-  p.media = p.media || null;
-  (p.comments||[]).forEach(c=>{ c.id = nextId++; });
-});
-clubs.forEach(club=>{
-  clubGridPosts[club].forEach(p=>{
-    p.id = nextId++;
-    p.club = club;
-    p.confirmed = p.confirmed !== undefined ? p.confirmed : true;
-    p.date = p.date || "—";
-    p.responsible = p.responsible || club;
-    p.desc = p.desc || p.label;
-    p.commentsOpen = p.commentsOpen !== undefined ? p.commentsOpen : true;
-    p.likes = p.likes || 0;
-    p.comments = p.comments || [];
+function applySeedDefaults(){
+  feedPosts.forEach(p=>{
+    if(p.id===undefined) p.id = nextId++;
     p.media = p.media || null;
+    (p.comments||[]).forEach(c=>{ if(c.id===undefined) c.id = nextId++; });
   });
-  clubStories[club].forEach(s=>{ s.id = nextId++; });
-  clubReels[club].forEach(r=>{
-    r.id = nextId++;
-    r.club = club;
-    r.likes = r.likes || 0;
-    r.comments = r.comments || [];
+  clubs.forEach(club=>{
+    clubGridPosts[club].forEach(p=>{
+      if(p.id===undefined) p.id = nextId++;
+      p.club = club;
+      p.confirmed = p.confirmed !== undefined ? p.confirmed : true;
+      p.date = p.date || "—";
+      p.responsible = p.responsible || club;
+      p.desc = p.desc || p.label;
+      p.commentsOpen = p.commentsOpen !== undefined ? p.commentsOpen : true;
+      p.likes = p.likes || 0;
+      p.comments = p.comments || [];
+      p.media = p.media || null;
+    });
+    clubStories[club].forEach(s=>{ if(s.id===undefined) s.id = nextId++; });
+    clubReels[club].forEach(r=>{
+      if(r.id===undefined) r.id = nextId++;
+      r.club = club;
+      r.likes = r.likes || 0;
+      r.comments = r.comments || [];
+    });
+    clubMembers[club].forEach(m=>{
+      if(m.id===undefined) m.id = nextId++;
+      m.accountLevels = m.accountLevels && m.accountLevels.length ? m.accountLevels : ["Student Account"];
+      m.pastRoles = m.pastRoles || [];
+      m.contact = m.contact || "";
+      m.grade = m.grade || "";
+      m.joined = m.joined || "";
+      m.bio = m.bio || "";
+    });
   });
-  clubMembers[club].forEach(m=>{
-    m.id = nextId++;
-    m.accountLevels = m.accountLevels && m.accountLevels.length ? m.accountLevels : ["Student Account"];
-    m.pastRoles = m.pastRoles || [];
-    m.contact = m.contact || "";
-    m.grade = m.grade || "";
-    m.joined = m.joined || "";
-    m.bio = m.bio || "";
-  });
-});
+}
 
 function getArr(name){ return name==="feed" ? feedPosts : clubGridPosts[currentViewedClub]; }
 function findById(arr, id){ return arr.find(x=>x.id===id); }
@@ -898,8 +932,8 @@ const rolePerms = {
   staff:    {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
 };
 let currentRole = "business";
-let currentClub = clubs[0]; // which club's Club Manager account is "logged in" (only meaningful when currentRole === "business")
-let currentViewedClub = clubs[0]; // which club's Individual Business Club Page is currently on screen
+let currentClub = null; // which club's Club Manager account is "logged in" (only meaningful when currentRole === "business") — set once the club list is finalized (after server hydration, if any)
+let currentViewedClub = null; // which club's Individual Business Club Page is currently on screen — set the same way
 let currentStudentMemberId = null; // which student member "you" are logged in as (only meaningful when currentRole === "student")
 const followedClubs = ["CCA Business Club"]; // mock: the demo account follows its own club
 
@@ -1554,6 +1588,12 @@ function applyPermissions(){
   const editClubBtn=document.getElementById("editClubBtn");
   if(editClubBtn) editClubBtn.style.display = manage ? "flex" : "none";
 
+  const isAdmin = currentRole==="staff";
+  const recordBtn=document.getElementById("recordStatusBtn");
+  const resetBtn=document.getElementById("resetDefaultBtn");
+  if(recordBtn) recordBtn.style.display = isAdmin ? "flex" : "none";
+  if(resetBtn) resetBtn.style.display = isAdmin ? "flex" : "none";
+
   renderGrid(currentFilter);
   renderStories();
   renderClubReels();
@@ -1608,6 +1648,33 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
 });
 
 /* ---------------- HELP MODAL ---------------- */
+/* ---------------- RECORD STATUS / RESET TO DEFAULT (Administrator only, shared for every visitor) ---------------- */
+async function saveState(){
+  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, feedPosts, followedClubs, nextId };
+  try{
+    const res = await fetch("/api/state", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("save failed");
+    toast("Recorded — this is now the live default for every visitor");
+  }catch(e){
+    toast("Couldn't save — the shared backend isn't set up yet");
+  }
+}
+function recordStatus(){
+  askConfirm("Save the current posts, profiles, and reels as the live default for every visitor? This overwrites the shared site data.", saveState);
+}
+function resetToDefault(){
+  askConfirm("Reset the live site back to its original defaults for every visitor? This can't be undone.", async ()=>{
+    try{ await fetch("/api/state", {method:"DELETE"}); }catch(e){}
+    location.reload();
+  });
+}
+document.getElementById("recordStatusBtn").addEventListener("click", recordStatus);
+document.getElementById("resetDefaultBtn").addEventListener("click", resetToDefault);
+
 /* ---------------- HELP CENTER (searchable list -> click a system -> how to use / what it's for) ---------------- */
 const helpTopics = [
   {id:1, title:"Search Bar", keywords:["search","find","lookup","magnifying glass"],
@@ -1682,6 +1749,10 @@ const helpTopics = [
     summary:"Rearrange a club's post grid by dragging tiles.",
     purpose:"Lets a club highlight its most important posts first.",
     usage:"On your own club's page, click and drag a post tile to a new spot in the grid."},
+  {id:19, title:"Record Status / Reset to Default", keywords:["record status","save","persist","permanent","reset to default","publish state","backend"],
+    summary:"Save the current live state as the shared default, or reset it back to the original.",
+    purpose:"Lets an Administrator lock in edits (posts, profiles, reels, club pages) so every visitor sees them after a reload — or undo everything back to the original demo data.",
+    usage:"As an Administrator, use \"💾 Record Status\" in the top bar to save the current state for everyone, or \"↺ Reset Default\" to wipe it back to the original mock data."},
 ];
 
 function renderHelpList(query){
@@ -2110,12 +2181,19 @@ document.getElementById("saveEditClubBtn").addEventListener("click", ()=>{
   toast("Club page updated");
 });
 
-/* ---------------- INIT ---------------- */
-rebuildHomeSchoolFilterOptions();
-renderClubsRow();
-renderReels();
-renderFeed();
-renderClubPage();
+/* ---------------- INIT (hydrate shared state first, then normalize ids/defaults, then render) ---------------- */
+async function initApp(){
+  await hydrateFromServer();
+  applySeedDefaults();
+  currentClub = clubs[0];
+  currentViewedClub = clubs[0];
+  rebuildHomeSchoolFilterOptions();
+  renderClubsRow();
+  renderReels();
+  renderFeed();
+  renderClubPage();
+}
+initApp();
 </script>
 </body>
 </html>
