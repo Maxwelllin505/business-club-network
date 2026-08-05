@@ -367,9 +367,9 @@
   </div>
   <div class="topbar-right">
     <select class="role-select" id="roleSelect">
-      <option value="public">Public Account</option>
+      <option value="public" selected>Public Account</option>
       <option value="student">Student Account</option>
-      <option value="business" selected>Club Manager Account</option>
+      <option value="business">Club Manager Account</option>
       <option value="staff">Administrator Account</option>
     </select>
     <select class="role-select" id="clubSelect" style="display:none;"></select>
@@ -543,6 +543,26 @@
     <div class="form-actions" style="justify-content:center;">
       <button class="btn-secondary" id="confirmNo">Cancel</button>
       <button class="btn-primary" id="confirmYes" style="background:var(--danger);">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="adminLoginModal">
+  <div class="modal" style="max-width:360px;">
+    <h3 style="margin-bottom:4px;">Administrator Login</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">Enter the administrator passcode to unlock full moderation and account-level controls.</p>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="text" id="adminLoginEmail" value="admin@ccabusinessclub.org" readonly style="background:#f2f4f8;color:var(--muted);">
+    </div>
+    <div class="form-group">
+      <label>Passcode</label>
+      <input type="password" id="adminLoginPasscode" placeholder="Enter passcode" autocomplete="off">
+      <div class="field-error" id="err-adminpasscode">Incorrect passcode. Try again.</div>
+    </div>
+    <div class="form-actions" style="justify-content:space-between;">
+      <button type="button" class="btn-secondary" id="publicModeBtn">Public Account Mode</button>
+      <button type="button" class="btn-primary" id="adminLoginSubmit">Log In</button>
     </div>
   </div>
 </div>
@@ -931,10 +951,12 @@ const rolePerms = {
   business: {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
   staff:    {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
 };
-let currentRole = "business";
+let currentRole = "public";
 let currentClub = null; // which club's Club Manager account is "logged in" (only meaningful when currentRole === "business") — set once the club list is finalized (after server hydration, if any)
 let currentViewedClub = null; // which club's Individual Business Club Page is currently on screen — set the same way
 let currentStudentMemberId = null; // which student member "you" are logged in as (only meaningful when currentRole === "student")
+const ADMIN_PASSCODE = "0928485217";
+let adminUnlocked = false; // in-memory only (never persisted) — resets to false on every page load/refresh/reopen, so Administrator always requires the passcode again
 const followedClubs = ["CCA Business Club"]; // mock: the demo account follows its own club
 
 // Administrators (staff) can delete any post/story. A Club Manager account can only delete posts/stories that belong to ITS OWN club.
@@ -1600,11 +1622,55 @@ function applyPermissions(){
 }
 
 document.getElementById("roleSelect").addEventListener("change",(e)=>{
-  currentRole=e.target.value;
+  const newRole = e.target.value;
+  if(newRole==="staff" && !adminUnlocked){
+    e.target.value = currentRole; // revert the dropdown until login succeeds
+    openAdminLoginModal();
+    return;
+  }
+  currentRole=newRole;
   if(currentRole==="business" && !currentClub) currentClub = clubs[0];
   applyPermissions();
   renderFeed();
   toast(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
+});
+
+/* ---------------- ADMIN LOGIN GATE ---------------- */
+function openAdminLoginModal(){
+  document.getElementById("adminLoginPasscode").value = "";
+  document.getElementById("err-adminpasscode").classList.remove("show");
+  document.getElementById("adminLoginModal").classList.add("open");
+  document.getElementById("adminLoginPasscode").focus();
+}
+function closeAdminLoginModal(){
+  document.getElementById("adminLoginModal").classList.remove("open");
+}
+function submitAdminLogin(){
+  const val = document.getElementById("adminLoginPasscode").value.trim();
+  const err = document.getElementById("err-adminpasscode");
+  if(val === ADMIN_PASSCODE){
+    adminUnlocked = true;
+    currentRole = "staff";
+    document.getElementById("roleSelect").value = "staff";
+    closeAdminLoginModal();
+    applyPermissions();
+    renderFeed();
+    toast("Logged in as Administrator");
+  } else {
+    err.classList.add("show");
+  }
+}
+document.getElementById("adminLoginSubmit").addEventListener("click", submitAdminLogin);
+document.getElementById("adminLoginPasscode").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") submitAdminLogin();
+});
+document.getElementById("publicModeBtn").addEventListener("click", ()=>{
+  currentRole = "public";
+  document.getElementById("roleSelect").value = "public";
+  closeAdminLoginModal();
+  applyPermissions();
+  renderFeed();
+  toast("Switched to Public Account");
 });
 
 document.getElementById("clubSelect").addEventListener("change",(e)=>{
@@ -1728,7 +1794,7 @@ const helpTopics = [
   {id:13, title:"Account Roles", keywords:["role","account type","public student club manager administrator","switch account"],
     summary:"Switch between Public, Student, Club Manager, and Administrator accounts to preview each experience.",
     purpose:"Lets you test what each type of account can see and do.",
-    usage:"Use the account dropdown in the top-right. A Student account also picks which student you're logged in as; a Club Manager account picks which club you manage."},
+    usage:"Use the account dropdown in the top-right. A Student account also picks which student you're logged in as; a Club Manager account picks which club you manage. Switching to Administrator requires the admin passcode — see \"Administrator Login\"."},
   {id:14, title:"Editing a Club Page", keywords:["edit club","rename club","club description","club name"],
     summary:"Change a club's name, description, and member roster.",
     purpose:"Keeps a club's public page accurate as officers and details change.",
@@ -1753,6 +1819,10 @@ const helpTopics = [
     summary:"Save the current live state as the shared default, or reset it back to the original.",
     purpose:"Lets an Administrator lock in edits (posts, profiles, reels, club pages) so every visitor sees them after a reload — or undo everything back to the original demo data.",
     usage:"As an Administrator, use \"💾 Record Status\" in the top bar to save the current state for everyone, or \"↺ Reset Default\" to wipe it back to the original mock data."},
+  {id:20, title:"Administrator Login", keywords:["login","log in","passcode","password","admin login","public account mode","locked out"],
+    summary:"A passcode gate protects Administrator access.",
+    purpose:"Keeps the powerful Administrator abilities (deleting anyone's content, editing any profile, granting account levels) from being reachable by just picking it from a dropdown.",
+    usage:"Every time the page loads or refreshes, a login screen appears asking for the administrator passcode. Enter it to unlock Administrator mode for the rest of this browser tab, or click \"Public Account Mode\" if you don't know the passcode to continue as a Public account. You'll need to log in again after refreshing or reopening the tab — this isn't saved anywhere."},
 ];
 
 function renderHelpList(query){
@@ -2192,6 +2262,7 @@ async function initApp(){
   renderReels();
   renderFeed();
   renderClubPage();
+  openAdminLoginModal(); // every fresh load starts logged out — must enter the passcode or choose Public Account Mode
 }
 initApp();
 </script>
