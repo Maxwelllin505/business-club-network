@@ -156,7 +156,7 @@
   .banner .clubtitle h2{margin:0;font-size:22px;}
   .banner .clubtitle p{margin:2px 0 0;font-size:12px;opacity:.85;}
   .members-row{display:flex;gap:14px;padding:14px 18px;overflow-x:auto;}
-  .member-card{flex:0 0 auto;text-align:center;width:64px;}
+  .member-card{flex:0 0 auto;text-align:center;width:64px;cursor:pointer;}
   .member-card .avatar{width:48px;height:48px;font-size:16px;margin:0 auto 6px;}
   .member-card .name{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
@@ -329,6 +329,14 @@
   .member-edit-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
   .member-edit-row .form-group{flex:1;margin-bottom:0;}
   .member-edit-row .remove-member-btn{flex:0 0 auto;padding:9px 12px;font-size:12px;height:38px;}
+
+  /* ---------- MEMBER PROFILE MODAL ---------- */
+  .profile-row{margin-bottom:14px;}
+  .profile-row .pr-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+  .profile-row .pr-value{font-size:14px;color:var(--text);line-height:1.5;}
+  .profile-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--navy);color:#fff;}
+  .past-role-item{font-size:13px;color:var(--text);margin-bottom:2px;}
+  .past-role-item::before{content:"• ";color:var(--muted);}
 </style>
 </head>
 <body>
@@ -518,6 +526,20 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="memberProfileModal">
+  <div class="modal" style="max-width:420px;">
+    <button class="close" id="closeMemberProfileModal">✕</button>
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;">
+      <div class="avatar" id="mpAvatar" style="width:56px;height:56px;font-size:20px;flex:0 0 auto;"></div>
+      <div>
+        <div style="font-weight:700;font-size:17px;" id="mpName"></div>
+        <div style="font-size:12px;color:var(--muted);" id="mpClub"></div>
+      </div>
+    </div>
+    <div id="mpBody"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="editClubModal">
   <div class="modal wide">
     <button class="close" id="closeEditClubModal">✕</button>
@@ -658,18 +680,34 @@ const feedPosts = [
 
 const clubMembers = {
   "CCA Business Club": [
-    {name:"Maxwell Lin", role:"President"},
-    {name:"Michelle", role:"Vice President"},
-    {name:"Wilson Lin", role:"Secretary/Treasurer"},
-    {name:"D. Park", role:"Events Lead"},
+    {name:"Maxwell Lin", role:"President", accountLevel:"Business Club Account", contact:"maxwell.lin@cca.edu", grade:"Grade 11", joined:"Fall 2024",
+      bio:"Founded the club's National Economics Challenge team and manages the club's official account.",
+      pastRoles:["Vice President (2024–2025)","Member (2023–2024)"]},
+    {name:"Michelle", role:"Vice President", accountLevel:"Student Account", contact:"michelle@cca.edu", grade:"Grade 11", joined:"Fall 2024",
+      bio:"Leads weekly case-study workshops and coordinates with guest speakers.",
+      pastRoles:["Events Lead (2024–2025)"]},
+    {name:"Wilson Lin", role:"Secretary/Treasurer", accountLevel:"Student Account", contact:"wilson.lin@cca.edu", grade:"Grade 10", joined:"Spring 2025",
+      bio:"Manages the club's budget, dues, and meeting minutes.",
+      pastRoles:["Member (2024–2025)"]},
+    {name:"D. Park", role:"Events Lead", accountLevel:"Student Account", contact:"d.park@cca.edu", grade:"Grade 11", joined:"Fall 2024",
+      bio:"Organizes pitch nights, bake sales, and guest speaker sessions.",
+      pastRoles:[]},
   ],
   "Lincoln HS Econ Society": [
-    {name:"D. Park", role:"President"},
-    {name:"Anna R.", role:"Vice President"},
+    {name:"D. Park", role:"President", accountLevel:"Business Club Account", contact:"d.park@lincolnhs.edu", grade:"Grade 12", joined:"Fall 2023",
+      bio:"Oversees the society's market simulation program.",
+      pastRoles:["Vice President (2023–2024)"]},
+    {name:"Anna R.", role:"Vice President", accountLevel:"Student Account", contact:"anna.r@lincolnhs.edu", grade:"Grade 11", joined:"Fall 2024",
+      bio:"Runs the society's guest speaker series.",
+      pastRoles:[]},
   ],
   "Bayview Entrepreneurs": [
-    {name:"Sara K.", role:"President"},
-    {name:"T. Nguyen", role:"Treasurer"},
+    {name:"Sara K.", role:"President", accountLevel:"Business Club Account", contact:"sara.k@bayviewhs.edu", grade:"Grade 12", joined:"Fall 2023",
+      bio:"Leads the club's fundraiser planning and sponsor outreach.",
+      pastRoles:["Treasurer (2023–2024)"]},
+    {name:"T. Nguyen", role:"Treasurer", accountLevel:"Student Account", contact:"t.nguyen@bayviewhs.edu", grade:"Grade 10", joined:"Spring 2025",
+      bio:"Tracks fundraiser proceeds and club spending.",
+      pastRoles:[]},
   ],
 };
 
@@ -995,8 +1033,9 @@ function renderClubPage(){
 }
 
 function renderMembers(){
-  document.getElementById("membersRow").innerHTML = clubMembers[currentViewedClub].map(m=>`
-    <div class="member-card">
+  const club = currentViewedClub;
+  document.getElementById("membersRow").innerHTML = clubMembers[club].map((m,i)=>`
+    <div class="member-card" onclick="openMemberProfile('${club.replace(/'/g,"\\'")}', ${i})">
       <div class="avatar">${initials(m.name)}</div>
       <div class="name">${m.name}</div>
       <div class="name" style="color:var(--gold);">${m.role}</div>
@@ -1548,6 +1587,56 @@ document.getElementById("closeReelViewModal").addEventListener("click", closeRee
 document.getElementById("reelViewModal").addEventListener("click",(e)=>{ if(e.target.id==="reelViewModal") closeReelDetail(); });
 document.getElementById("reelCommentBtn").addEventListener("click", addReelComment);
 document.getElementById("reelCommentInput").addEventListener("keydown",(e)=>{ if(e.key==="Enter") addReelComment(); });
+
+/* ---------------- MEMBER PROFILE (view account level, contact, current + past positions) ---------------- */
+function openMemberProfile(club, idx){
+  const list = clubMembers[club];
+  if(!list) return;
+  const m = list[idx];
+  if(!m) return;
+
+  document.getElementById("mpAvatar").textContent = initials(m.name);
+  document.getElementById("mpName").textContent = m.name;
+  document.getElementById("mpClub").textContent = club;
+
+  const pastRoles = m.pastRoles || [];
+  document.getElementById("mpBody").innerHTML = `
+    <div class="profile-row">
+      <div class="pr-label">Account Level</div>
+      <div class="pr-value"><span class="profile-badge">${m.accountLevel || "Student Account"}</span></div>
+    </div>
+    <div class="profile-row">
+      <div class="pr-label">Current Position</div>
+      <div class="pr-value">${m.role || "—"}</div>
+    </div>
+    <div class="profile-row">
+      <div class="pr-label">Past Positions</div>
+      <div class="pr-value">${pastRoles.length ? pastRoles.map(r=>`<div class="past-role-item">${r}</div>`).join("") : `<div class="form-hint">No past positions on record.</div>`}</div>
+    </div>
+    <div class="profile-row">
+      <div class="pr-label">Contact</div>
+      <div class="pr-value">${m.contact || "—"}</div>
+    </div>
+    <div class="profile-row">
+      <div class="pr-label">Grade</div>
+      <div class="pr-value">${m.grade || "—"}</div>
+    </div>
+    <div class="profile-row">
+      <div class="pr-label">Joined</div>
+      <div class="pr-value">${m.joined || "—"}</div>
+    </div>
+    <div class="profile-row" style="margin-bottom:0;">
+      <div class="pr-label">About</div>
+      <div class="pr-value">${m.bio || "—"}</div>
+    </div>
+  `;
+  document.getElementById("memberProfileModal").classList.add("open");
+}
+function closeMemberProfile(){
+  document.getElementById("memberProfileModal").classList.remove("open");
+}
+document.getElementById("closeMemberProfileModal").addEventListener("click", closeMemberProfile);
+document.getElementById("memberProfileModal").addEventListener("click",(e)=>{ if(e.target.id==="memberProfileModal") closeMemberProfile(); });
 
 /* ---------------- EDIT CLUB PAGE (name / description / member introduction) ---------------- */
 let editMembersDraft = [];
