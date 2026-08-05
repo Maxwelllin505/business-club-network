@@ -440,6 +440,16 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal" style="max-width:340px;text-align:center;">
+    <p id="confirmMessage" style="margin:6px 0 18px;font-size:14px;"></p>
+    <div class="form-actions" style="justify-content:center;">
+      <button class="btn-secondary" id="confirmNo">Cancel</button>
+      <button class="btn-primary" id="confirmYes" style="background:var(--danger);">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="detailModal">
   <div class="modal detail-modal">
     <button class="detail-close" id="closeDetailModal">✕</button>
@@ -683,12 +693,13 @@ function renderStories(){
 }
 
 function deleteStory(id){
-  if(!confirm("Delete this story?")) return;
-  const idx = stories.findIndex(s=>s.id===id);
-  if(idx<0) return;
-  stories.splice(idx,1);
-  renderStories();
-  toast("Story deleted");
+  askConfirm("Delete this story?", ()=>{
+    const idx = stories.findIndex(s=>s.id===id);
+    if(idx<0) return;
+    stories.splice(idx,1);
+    renderStories();
+    toast("Story deleted");
+  });
 }
 
 let dragSrcIndex=null;
@@ -731,17 +742,38 @@ document.querySelectorAll('[data-type]').forEach(chip=>{
   });
 });
 
+/* ---------------- CUSTOM CONFIRM (non-blocking, unlike window.confirm) ---------------- */
+let pendingConfirmAction = null;
+function askConfirm(message, onConfirm){
+  document.getElementById("confirmMessage").textContent = message;
+  pendingConfirmAction = onConfirm;
+  document.getElementById("confirmModal").classList.add("open");
+}
+document.getElementById("confirmYes").addEventListener("click", ()=>{
+  document.getElementById("confirmModal").classList.remove("open");
+  const action = pendingConfirmAction; pendingConfirmAction = null;
+  if(action) action();
+});
+document.getElementById("confirmNo").addEventListener("click", ()=>{
+  document.getElementById("confirmModal").classList.remove("open");
+  pendingConfirmAction = null;
+});
+document.getElementById("confirmModal").addEventListener("click",(e)=>{
+  if(e.target.id==="confirmModal"){ e.target.classList.remove("open"); pendingConfirmAction=null; }
+});
+
 /* ---------------- DELETE POSTS / COMMENTS ---------------- */
 function deletePost(arrName, id){
-  if(!confirm("Delete this post? This can't be undone.")) return;
-  const arr = arrRegistry[arrName];
-  const idx = arr.findIndex(x=>x.id===id);
-  if(idx<0) return;
-  arr.splice(idx,1);
-  renderFeed();
-  renderGrid(currentFilter);
-  if(currentDetail && currentDetail.id===id) closeDetailModal();
-  toast("Post deleted");
+  askConfirm("Delete this post? This can't be undone.", ()=>{
+    const arr = arrRegistry[arrName];
+    const idx = arr.findIndex(x=>x.id===id);
+    if(idx<0) return;
+    arr.splice(idx,1);
+    renderFeed();
+    renderGrid(currentFilter);
+    if(currentDetail && currentDetail.id===id) closeDetailModal();
+    toast("Post deleted");
+  });
 }
 
 function deleteComment(arrName, postId, commentId){
