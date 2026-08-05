@@ -324,6 +324,11 @@
   .reel-vertical::before{content:"▶";position:absolute;top:14px;right:16px;font-size:16px;opacity:.85;}
   .reel-vertical .rv-club{font-size:11px;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:8px;width:fit-content;}
   .reel-vertical .rv-caption{font-size:14px;font-weight:600;line-height:1.4;}
+
+  /* ---------- EDIT CLUB PAGE (member introduction rows) ---------- */
+  .member-edit-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
+  .member-edit-row .form-group{flex:1;margin-bottom:0;}
+  .member-edit-row .remove-member-btn{flex:0 0 auto;padding:9px 12px;font-size:12px;height:38px;}
 </style>
 </head>
 <body>
@@ -400,6 +405,7 @@
           <h2 id="clubPageTitle">CCA Business Club</h2>
           <p id="clubPageTagline">California Crosspoint Academy · National Economics Challenge 2026</p>
         </div>
+        <button class="icon-btn" id="editClubBtn" style="position:absolute;top:12px;right:12px;display:none;">✏️ Edit Page</button>
       </div>
       <div class="section-label" style="padding:12px 18px 0;">Member Introduction</div>
       <div class="members-row" id="membersRow"></div>
@@ -508,6 +514,32 @@
     <div class="form-actions" style="justify-content:center;">
       <button class="btn-secondary" id="confirmNo">Cancel</button>
       <button class="btn-primary" id="confirmYes" style="background:var(--danger);">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="editClubModal">
+  <div class="modal wide">
+    <button class="close" id="closeEditClubModal">✕</button>
+    <h3>Edit Club Page</h3>
+    <div class="form-group">
+      <label>Club Name <span class="req">*</span></label>
+      <input type="text" id="editClubName">
+      <div class="field-error" id="err-clubname">Please enter a club name.</div>
+    </div>
+    <div class="form-group">
+      <label>Description <span class="req">*</span></label>
+      <textarea id="editClubTagline" placeholder="Short description shown under the club name"></textarea>
+      <div class="field-error" id="err-clubtagline">Please enter a description.</div>
+    </div>
+    <div class="form-group">
+      <label>Member Introduction</label>
+      <div id="editMembersList"></div>
+      <button type="button" class="btn-secondary" id="addMemberRowBtn" style="margin-top:6px;">+ Add Member</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" id="cancelEditClubBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="saveEditClubBtn">Save Changes</button>
     </div>
   </div>
 </div>
@@ -746,6 +778,48 @@ function canManageReel(reel){
   if(currentRole==="staff") return true;
   if(currentRole==="business") return currentClub === reel.club;
   return false;
+}
+
+/* ---------------- CLUB IDENTITY (name / description / roster edits) ---------------- */
+function rebuildClubSelectOptions(){
+  const clubSelect = document.getElementById("clubSelect");
+  clubSelect.innerHTML = clubs.map(c=>`<option value="${c}">${c} Account</option>`).join("");
+  clubSelect.value = clubs.includes(currentClub) ? currentClub : clubs[0];
+}
+function rebuildHomeSchoolFilterOptions(){
+  const hsf = document.getElementById("homeSchoolFilter");
+  const prevVal = hsf.value;
+  hsf.innerHTML = `<option value="all">All Schools</option>` + clubs.map(c=>`<option value="${c}">${c}</option>`).join("");
+  hsf.value = (prevVal==="all" || clubs.includes(prevVal)) ? prevVal : "all";
+}
+
+// Renames a club across every data structure that keys or references it by name.
+function renameClub(oldName, newName){
+  const idx = clubs.indexOf(oldName);
+  if(idx<0 || !newName || newName===oldName) return;
+
+  clubs[idx] = newName;
+
+  clubMeta[newName] = clubMeta[oldName]; delete clubMeta[oldName];
+
+  clubMembers[newName] = clubMembers[oldName]; delete clubMembers[oldName];
+
+  clubStories[newName] = clubStories[oldName]; delete clubStories[oldName];
+
+  clubGridPosts[newName] = clubGridPosts[oldName]; delete clubGridPosts[oldName];
+  clubGridPosts[newName].forEach(p=>{ p.club = newName; });
+
+  clubReels[newName] = clubReels[oldName]; delete clubReels[oldName];
+  clubReels[newName].forEach(r=>{ r.club = newName; });
+
+  feedPosts.forEach(p=>{ if(p.club===oldName) p.club = newName; });
+
+  if(currentClub===oldName) currentClub = newName;
+  if(currentViewedClub===oldName) currentViewedClub = newName;
+  const fIdx = followedClubs.indexOf(oldName);
+  if(fIdx>-1) followedClubs[fIdx] = newName;
+
+  rebuildHomeSchoolFilterOptions();
 }
 
 function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
@@ -1266,10 +1340,7 @@ function applyPermissions(){
   });
   const clubSelect = document.getElementById("clubSelect");
   if(currentRole==="business"){
-    if(!clubSelect.options.length){
-      clubSelect.innerHTML = clubs.map(c=>`<option value="${c}">${c} Account</option>`).join("");
-    }
-    clubSelect.value = currentClub;
+    rebuildClubSelectOptions();
     clubSelect.style.display = "block";
   } else {
     clubSelect.style.display = "none";
@@ -1295,6 +1366,9 @@ function applyPermissions(){
 
   const newPostBtn=document.getElementById("newPostBtn");
   if(newPostBtn) newPostBtn.style.display = manage ? "flex" : "none";
+
+  const editClubBtn=document.getElementById("editClubBtn");
+  if(editClubBtn) editClubBtn.style.display = manage ? "flex" : "none";
 
   renderGrid(currentFilter);
   renderStories();
@@ -1475,7 +1549,93 @@ document.getElementById("reelViewModal").addEventListener("click",(e)=>{ if(e.ta
 document.getElementById("reelCommentBtn").addEventListener("click", addReelComment);
 document.getElementById("reelCommentInput").addEventListener("keydown",(e)=>{ if(e.key==="Enter") addReelComment(); });
 
+/* ---------------- EDIT CLUB PAGE (name / description / member introduction) ---------------- */
+let editMembersDraft = [];
+
+function renderEditMembersList(list){
+  editMembersDraft = list;
+  const wrap = document.getElementById("editMembersList");
+  wrap.innerHTML = editMembersDraft.length ? editMembersDraft.map((m,i)=>`
+    <div class="member-edit-row" data-idx="${i}">
+      <div class="form-group"><input type="text" class="edit-member-name" placeholder="Name" value="${(m.name||"").replace(/"/g,"&quot;")}"></div>
+      <div class="form-group"><input type="text" class="edit-member-role" placeholder="Role" value="${(m.role||"").replace(/"/g,"&quot;")}"></div>
+      <button type="button" class="btn-secondary remove-member-btn">✕</button>
+    </div>`).join("") : `<div class="form-hint">No members yet — add one below.</div>`;
+  wrap.querySelectorAll(".remove-member-btn").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      syncMemberDraftFromDom();
+      const idx = +e.target.closest(".member-edit-row").dataset.idx;
+      editMembersDraft.splice(idx,1);
+      renderEditMembersList(editMembersDraft);
+    });
+  });
+}
+
+function syncMemberDraftFromDom(){
+  const rows = document.querySelectorAll("#editMembersList .member-edit-row");
+  editMembersDraft = Array.from(rows).map(row=>({
+    name: row.querySelector(".edit-member-name").value,
+    role: row.querySelector(".edit-member-role").value
+  }));
+}
+
+function openEditClubModal(){
+  document.getElementById("editClubName").value = currentViewedClub;
+  document.getElementById("editClubTagline").value = clubMeta[currentViewedClub].tagline;
+  renderEditMembersList(clubMembers[currentViewedClub].map(m=>({...m})));
+  document.getElementById("err-clubname").classList.remove("show");
+  document.getElementById("err-clubtagline").classList.remove("show");
+  document.getElementById("editClubModal").classList.add("open");
+}
+function closeEditClubModal(){
+  document.getElementById("editClubModal").classList.remove("open");
+}
+
+document.getElementById("editClubBtn").addEventListener("click", openEditClubModal);
+document.getElementById("closeEditClubModal").addEventListener("click", closeEditClubModal);
+document.getElementById("cancelEditClubBtn").addEventListener("click", closeEditClubModal);
+document.getElementById("editClubModal").addEventListener("click",(e)=>{ if(e.target.id==="editClubModal") closeEditClubModal(); });
+document.getElementById("addMemberRowBtn").addEventListener("click", ()=>{
+  syncMemberDraftFromDom();
+  editMembersDraft.push({name:"", role:""});
+  renderEditMembersList(editMembersDraft);
+});
+
+document.getElementById("saveEditClubBtn").addEventListener("click", ()=>{
+  if(!canManageClubPage()){ toast("You don't have permission to edit this page"); return; }
+
+  const newName = document.getElementById("editClubName").value.trim();
+  const newTagline = document.getElementById("editClubTagline").value.trim();
+  const nameErr = document.getElementById("err-clubname");
+  const taglineErr = document.getElementById("err-clubtagline");
+
+  let valid = true;
+  if(!newName){ nameErr.textContent = "Please enter a club name."; nameErr.classList.add("show"); valid=false; }
+  else if(newName!==currentViewedClub && clubs.includes(newName)){ nameErr.textContent = "Another club already uses this name."; nameErr.classList.add("show"); valid=false; }
+  else { nameErr.classList.remove("show"); }
+  taglineErr.classList.toggle("show", !newTagline); if(!newTagline) valid=false;
+  if(!valid) return;
+
+  syncMemberDraftFromDom();
+  const newMembers = editMembersDraft
+    .map(m=>({name:m.name.trim(), role:m.role.trim()}))
+    .filter(m=>m.name);
+
+  const oldName = currentViewedClub;
+  clubMeta[oldName].tagline = newTagline;
+  clubMembers[oldName] = newMembers;
+  if(newName !== oldName) renameClub(oldName, newName);
+
+  renderClubsRow();
+  renderReels();
+  renderFeed();
+  renderClubPage();
+  closeEditClubModal();
+  toast("Club page updated");
+});
+
 /* ---------------- INIT ---------------- */
+rebuildHomeSchoolFilterOptions();
 renderClubsRow();
 renderReels();
 renderFeed();
