@@ -305,6 +305,7 @@
       <option value="business" selected>Business Club Account</option>
       <option value="staff">Staff Account</option>
     </select>
+    <select class="role-select" id="clubSelect" style="display:none;"></select>
     <button class="icon-btn" id="helpBtn">❓ Help</button>
     <div class="avatar" id="acctAvatar">M</div>
   </div>
@@ -572,6 +573,21 @@ const rolePerms = {
   staff:    {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
 };
 let currentRole = "business";
+let currentClub = clubs[0]; // which club's business account is "logged in" (only meaningful when currentRole === "business")
+const CLUB_PAGE_OWNER = "CCA Business Club"; // the club that owns this Individual Business Club Page
+
+// Staff can delete any post/story. A business account can only delete posts/stories that belong to ITS OWN club.
+function canDelete(post){
+  if(currentRole==="staff") return true;
+  if(currentRole==="business") return post.club === currentClub;
+  return false;
+}
+// Editing the club page itself (new post, drag-reorder, story deletion) is limited to staff or that club's own business account.
+function canManageClubPage(){
+  if(currentRole==="staff") return true;
+  if(currentRole==="business") return currentClub === CLUB_PAGE_OWNER;
+  return false;
+}
 
 function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
 function toast(msg){
@@ -619,7 +635,7 @@ function renderFeed(){
             <button onclick="toast('Saved to your bookmarks')">Save</button>
             <button onclick="toast('Repost shared to your feed')">Repost</button>
             <button class="report" onclick="toast('Reported — staff will review this post')">Report post</button>
-            ${perms.editPage ? `<button class="delete" onclick="deletePost('feed', ${p.id})">Delete post</button>` : ""}
+            ${canDelete(p) ? `<button class="delete" onclick="deletePost('feed', ${p.id})">Delete post</button>` : ""}
           </div>
         </div>
       </div>
@@ -668,7 +684,7 @@ function addComment(i){
   const input=document.getElementById(`commentInput-${i}`);
   if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
   if(!input.value.trim()) return;
-  feedPosts[i].comments.push({id: nextId++, name: currentRole==="business" ? feedPosts[i].club : "You", text:input.value.trim()});
+  feedPosts[i].comments.push({id: nextId++, name: currentRole==="business" ? currentClub : "You", text:input.value.trim()});
   renderFeed();
   document.getElementById(`comments-${i}`).classList.add("open");
 }
@@ -686,7 +702,7 @@ function renderMembers(){
 function renderStories(){
   document.getElementById("storyRow").innerHTML = stories.map(s=>`
     <div class="story ${s.expired?'expired':''}" onclick="${s.expired?`toast('This story has expired')`:`toast('Opening story: ${s.name}')`}">
-      ${currentRole==='staff' ? `<button class="delete-x" onclick="event.stopPropagation(); deleteStory(${s.id})">✕</button>` : ""}
+      ${canManageClubPage() ? `<button class="delete-x" onclick="event.stopPropagation(); deleteStory(${s.id})">✕</button>` : ""}
       <div class="ring"><div class="avatar">${initials(s.name)}</div></div>
       <div class="timer">${s.expired?'Expired':'22h left'}</div>
     </div>`).join("");
@@ -705,16 +721,16 @@ function deleteStory(id){
 let dragSrcIndex=null;
 function renderGrid(filter="all"){
   const grid=document.getElementById("postGrid");
-  const perms=rolePerms[currentRole];
+  const manage = canManageClubPage();
   const list = filter==="all" ? gridPosts : gridPosts.filter(p=>p.type===filter);
   grid.innerHTML = list.map((p,i)=>`
-    <div class="grid-block" draggable="${perms.drag}" data-i="${gridPosts.indexOf(p)}" onclick="openDetail('grid', ${p.id})" style="${p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:""}">
-      ${perms.editPage ? `<button class="delete-x" onclick="event.stopPropagation(); deletePost('grid', ${p.id})">✕</button>` : ""}
+    <div class="grid-block" draggable="${manage}" data-i="${gridPosts.indexOf(p)}" onclick="openDetail('grid', ${p.id})" style="${p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:""}">
+      ${canDelete(p) ? `<button class="delete-x" onclick="event.stopPropagation(); deletePost('grid', ${p.id})">✕</button>` : ""}
       <span class="tag">${p.type}</span>
       ${p.label}
     </div>`).join("");
 
-  if(!perms.drag) return;
+  if(!manage) return;
   const blocks=grid.querySelectorAll(".grid-block");
   blocks.forEach(b=>{
     b.addEventListener("dragstart", e=>{ dragSrcIndex=+b.dataset.i; b.classList.add("dragging"); });
@@ -811,7 +827,6 @@ function renderDetail(){
   const arr = arrRegistry[currentDetail.arrName];
   const p = findById(arr, currentDetail.id);
   if(!p){ closeDetailModal(); return; }
-  const perms = rolePerms[currentRole];
 
   document.getElementById("detailMedia").innerHTML = p.media
     ? `<img src="${p.media}">`
@@ -827,7 +842,7 @@ function renderDetail(){
     <button onclick="toast('${p.comments.length} comment${p.comments.length!==1?'s':''} below')">💬 ${p.comments.length} Comment${p.comments.length!==1?'s':''}</button>
     <button onclick="toast('Saved')">🔖 Save</button>
     <button onclick="toast('Shared')">↗ Share</button>
-    ${perms.editPage ? `<button onclick="deletePost('${currentDetail.arrName}', ${p.id})" style="color:var(--danger);">🗑 Delete Post</button>` : ""}
+    ${canDelete(p) ? `<button onclick="deletePost('${currentDetail.arrName}', ${p.id})" style="color:var(--danger);">🗑 Delete Post</button>` : ""}
   `;
 
   document.getElementById("detailComments").innerHTML = `
@@ -858,7 +873,7 @@ function addDetailComment(){
   if(!input.value.trim()) return;
   const arr = arrRegistry[currentDetail.arrName];
   const p = findById(arr, currentDetail.id);
-  p.comments.push({id: nextId++, name: currentRole==='business' ? (p.club||"CCA Business Club") : "You", text: input.value.trim()});
+  p.comments.push({id: nextId++, name: currentRole==='business' ? currentClub : "You", text: input.value.trim()});
   renderDetail();
   renderFeed();
   renderGrid(currentFilter);
@@ -882,16 +897,37 @@ function applyPermissions(){
     if(isShare) allowed=perms.share;
     btn.classList.toggle("locked", !allowed);
   });
+  const clubSelect = document.getElementById("clubSelect");
+  if(currentRole==="business"){
+    if(!clubSelect.options.length){
+      clubSelect.innerHTML = clubs.map(c=>`<option value="${c}">${c} Account</option>`).join("");
+    }
+    clubSelect.value = currentClub;
+    clubSelect.style.display = "block";
+  } else {
+    clubSelect.style.display = "none";
+  }
+
   document.getElementById("acctAvatar").textContent =
-    currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "St" : "M";
+    currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "St" : initials(currentClub);
 
   const note=document.getElementById("clubOwnerNote");
-  if(currentRole==="business"){ note.style.display="block"; note.innerHTML="You're viewing this page as a <b>Business Club Account</b> — you can drag posts to rearrange them and edit page content."; }
-  else if(currentRole==="staff"){ note.style.display="block"; note.innerHTML="You're viewing as <b>Staff</b> — you can edit any post on this page and view its report history."; }
-  else { note.style.display="none"; }
+  const manage = canManageClubPage();
+  if(currentRole==="staff"){
+    note.style.display="block";
+    note.innerHTML="You're viewing as <b>Staff</b> — you can edit or delete any post, comment, or story on this page and view its report history.";
+  } else if(currentRole==="business" && manage){
+    note.style.display="block";
+    note.innerHTML=`You're viewing this page as the <b>${currentClub} Account</b> — you can drag posts to rearrange them, publish new posts, and delete your own posts/stories.`;
+  } else if(currentRole==="business"){
+    note.style.display="block";
+    note.innerHTML=`You're viewing this page as <b>${currentClub} Account</b> — this page belongs to a different club, so you can view it but can't edit, post, or delete its content.`;
+  } else {
+    note.style.display="none";
+  }
 
   const newPostBtn=document.getElementById("newPostBtn");
-  if(newPostBtn) newPostBtn.style.display = perms.editPage ? "flex" : "none";
+  if(newPostBtn) newPostBtn.style.display = manage ? "flex" : "none";
 
   renderGrid(currentFilter);
   renderStories();
@@ -899,9 +935,17 @@ function applyPermissions(){
 
 document.getElementById("roleSelect").addEventListener("change",(e)=>{
   currentRole=e.target.value;
+  if(currentRole==="business" && !currentClub) currentClub = clubs[0];
   applyPermissions();
   renderFeed();
   toast(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
+});
+
+document.getElementById("clubSelect").addEventListener("change",(e)=>{
+  currentClub = e.target.value;
+  applyPermissions();
+  renderFeed();
+  toast(`Now managing as ${currentClub}`);
 });
 
 /* ---------------- PAGE NAV ---------------- */
