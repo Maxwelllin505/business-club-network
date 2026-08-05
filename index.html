@@ -97,6 +97,19 @@
   .reel span{font-size:11px;font-weight:600;line-height:1.3;}
   .reel .reelclub{position:absolute;top:8px;left:8px;font-size:9px;background:rgba(255,255,255,.2);padding:2px 6px;border-radius:6px;}
 
+  /* ---------- CLUBS DIRECTORY (Home Page) ---------- */
+  .clubs-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:14px;}
+  .club-card{
+    flex:0 0 auto;width:220px;border-radius:14px;background:var(--card);border:1px solid var(--border);
+    cursor:pointer;overflow:hidden;transition:box-shadow .15s;
+  }
+  .club-card:hover{box-shadow:0 6px 16px rgba(0,0,0,.1);}
+  .club-card .cc-banner{height:56px;background:linear-gradient(120deg,#1c3157,#3a5590,#d4a53d);}
+  .club-card .cc-body{padding:10px 12px;}
+  .club-card .cc-name{font-weight:700;font-size:13px;margin-bottom:2px;}
+  .club-card .cc-tagline{font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:6px;min-height:30px;}
+  .club-card .cc-link{font-size:11px;font-weight:700;color:var(--navy2);}
+
   /* ---------- POST CARD (Home feed) ---------- */
   .post{
     background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
@@ -321,18 +334,37 @@
   <!-- ================= HOME PAGE ================= -->
   <section id="page-home">
     <div class="filterbar">
-      <select><option>All Schools</option><option>CCA</option><option>Bay Area HS</option><option>Lincoln HS</option></select>
-      <select><option>All Topics</option><option>Competitions</option><option>Fundraisers</option><option>Workshops</option></select>
-      <select><option>All Time</option><option>Today</option><option>This Week</option><option>This Month</option></select>
-      <div class="chip active">For You</div>
-      <div class="chip">Following</div>
+      <select id="homeSchoolFilter">
+        <option value="all">All Schools</option>
+        <option value="CCA Business Club">CCA Business Club</option>
+        <option value="Lincoln HS Econ Society">Lincoln HS Econ Society</option>
+        <option value="Bayview Entrepreneurs">Bayview Entrepreneurs</option>
+      </select>
+      <select id="homeTopicFilter">
+        <option value="all">All Topics</option>
+        <option value="event">Events</option>
+        <option value="achievement">Achievements</option>
+        <option value="fundraiser">Fundraisers</option>
+      </select>
+      <select id="homeTimeFilter">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+      </select>
+      <div class="chip active" data-feedtab="foryou">For You</div>
+      <div class="chip" data-feedtab="following">Following</div>
     </div>
+
+    <div class="section-label">Clubs</div>
+    <div class="clubs-row" id="clubsRow"></div>
 
     <div class="section-label">Reels</div>
     <div class="reels-row" id="reelsRow"></div>
 
     <div class="section-label">Feed</div>
     <div id="feed"></div>
+    <div class="form-hint" id="feedEmptyHint" style="display:none;text-align:center;padding:20px 0;">No posts match your current filters.</div>
   </section>
 
   <!-- ================= CLUB PAGE ================= -->
@@ -342,8 +374,8 @@
     <div class="club-header">
       <div class="banner">
         <div class="clubtitle">
-          <h2>CCA Business Club</h2>
-          <p>California Crosspoint Academy · National Economics Challenge 2026</p>
+          <h2 id="clubPageTitle">CCA Business Club</h2>
+          <p id="clubPageTagline">California Crosspoint Academy · National Economics Challenge 2026</p>
         </div>
       </div>
       <div class="section-label" style="padding:12px 18px 0;">Member Introduction</div>
@@ -353,12 +385,18 @@
     <div class="section-label">Stories · disappear after 24 hrs</div>
     <div class="story-bar" id="storyRow"></div>
 
+    <div class="grid-toolbar">
+      <div class="section-label" style="margin:0;">Reels</div>
+      <button class="new-post-btn" id="newReelBtn" style="padding:6px 12px;font-size:12px;">+ Add Reel</button>
+    </div>
+    <div class="reels-row" id="clubReelsRow"></div>
+
     <div class="filterbar">
       <div class="chip active" data-type="all">All Posts</div>
       <div class="chip" data-type="event">Events</div>
       <div class="chip" data-type="achievement">Achievements</div>
       <div class="chip" data-type="fundraiser">Fundraisers</div>
-      <select><option>Newest</option><option>Oldest</option></select>
+      <select id="gridSort"><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
     </div>
 
     <div class="grid-toolbar">
@@ -451,6 +489,22 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="reelModal">
+  <div class="modal" style="max-width:360px;">
+    <button class="close" id="closeReelModal">✕</button>
+    <h3>Add Reel</h3>
+    <div class="form-group">
+      <label>Reel Caption <span class="req">*</span></label>
+      <input type="text" id="reelLabelInput" placeholder="e.g. Behind the scenes at our bake sale">
+      <div class="field-error" id="err-reel">Please enter a caption for the reel.</div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" id="cancelReelBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="saveReelBtn">Add Reel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="detailModal">
   <div class="modal detail-modal">
     <button class="detail-close" id="closeDetailModal">✕</button>
@@ -492,77 +546,114 @@
 /* ---------------- MOCK DATA (reflects the Business Club doc) ---------------- */
 const clubs = ["CCA Business Club","Lincoln HS Econ Society","Bayview Entrepreneurs"];
 
-const reels = [
-  {club:"CCA Business Club", label:"Pitch night recap"},
-  {club:"Lincoln HS Econ Society", label:"Market sim highlights"},
-  {club:"Bayview Entrepreneurs", label:"Fundraiser bake sale"},
-  {club:"CCA Business Club", label:"Officer intros"},
-  {club:"Lincoln HS Econ Society", label:"Guest speaker clip"},
-];
+const clubMeta = {
+  "CCA Business Club": {tagline:"California Crosspoint Academy · National Economics Challenge 2026"},
+  "Lincoln HS Econ Society": {tagline:"Lincoln High School · Economics & Finance Club"},
+  "Bayview Entrepreneurs": {tagline:"Bayview High School · Student Entrepreneurship Club"},
+};
+
+const clubReels = {
+  "CCA Business Club": [ {label:"Pitch night recap"}, {label:"Officer intros"} ],
+  "Lincoln HS Econ Society": [ {label:"Market sim highlights"}, {label:"Guest speaker clip"} ],
+  "Bayview Entrepreneurs": [ {label:"Fundraiser bake sale"} ],
+};
 
 const feedPosts = [
   {
-    club:"CCA Business Club", confirmed:true, date:"Aug 2, 2026", responsible:"Maxwell Lin",
+    club:"CCA Business Club", type:"achievement", confirmed:true, date:"Aug 2, 2026", responsible:"Maxwell Lin",
     desc:"We're officially registered for the National Economics Challenge! Practice sessions start next week — sign up on the club page.",
     commentsOpen:true, likes:34, comments:[{name:"Michelle",text:"Let's go!! 🎉"},{name:"Ethan",text:"Signing up now"}]
   },
   {
-    club:"Bayview Entrepreneurs", confirmed:true, date:"Jul 30, 2026", responsible:"Sara K.",
+    club:"Bayview Entrepreneurs", type:"fundraiser", confirmed:true, date:"Jul 30, 2026", responsible:"Sara K.",
     desc:"Our spring fundraiser raised $1,240 for club competition travel costs. Thank you to everyone who baked and bought!",
     commentsOpen:false, likes:51, comments:[]
   },
   {
-    club:"Lincoln HS Econ Society", confirmed:false, date:"Jul 29, 2026", responsible:"D. Park",
+    club:"Lincoln HS Econ Society", type:"event", confirmed:false, date:"Jul 29, 2026", responsible:"D. Park",
     desc:"Workshop this Friday on supply & demand modeling — open to all Bay Area business club members.",
     commentsOpen:true, likes:12, comments:[{name:"Anna",text:"Can non-members join?"}]
   },
 ];
 
-const members = [
-  {name:"Maxwell Lin", role:"President"},
-  {name:"Michelle", role:"Vice President"},
-  {name:"Wilson Lin", role:"Secretary/Treasurer"},
-  {name:"D. Park", role:"Events Lead"},
-];
+const clubMembers = {
+  "CCA Business Club": [
+    {name:"Maxwell Lin", role:"President"},
+    {name:"Michelle", role:"Vice President"},
+    {name:"Wilson Lin", role:"Secretary/Treasurer"},
+    {name:"D. Park", role:"Events Lead"},
+  ],
+  "Lincoln HS Econ Society": [
+    {name:"D. Park", role:"President"},
+    {name:"Anna R.", role:"Vice President"},
+  ],
+  "Bayview Entrepreneurs": [
+    {name:"Sara K.", role:"President"},
+    {name:"T. Nguyen", role:"Treasurer"},
+  ],
+};
 
-const stories = [
-  {name:"Officer Meetup", expired:false},
-  {name:"Booth Setup", expired:false},
-  {name:"Practice Round", expired:false},
-  {name:"Sponsor Visit", expired:true},
-];
+const clubStories = {
+  "CCA Business Club": [
+    {name:"Officer Meetup", expired:false},
+    {name:"Booth Setup", expired:false},
+    {name:"Practice Round", expired:false},
+    {name:"Sponsor Visit", expired:true},
+  ],
+  "Lincoln HS Econ Society": [
+    {name:"Market Sim Day", expired:false},
+    {name:"Guest Speaker", expired:true},
+  ],
+  "Bayview Entrepreneurs": [
+    {name:"Bake Sale Prep", expired:false},
+  ],
+};
 
-const gridPosts = [
-  {type:"event", label:"Pitch Night — Sept 12"},
-  {type:"achievement", label:"Regional Qualifier 🏆"},
-  {type:"fundraiser", label:"Bake Sale Recap"},
-  {type:"event", label:"Guest Speaker: Alum Founder"},
-  {type:"achievement", label:"New Member Record: 40+"},
-  {type:"fundraiser", label:"Sponsor Drive"},
-];
+const clubGridPosts = {
+  "CCA Business Club": [
+    {type:"event", label:"Pitch Night — Sept 12"},
+    {type:"achievement", label:"Regional Qualifier 🏆"},
+    {type:"fundraiser", label:"Bake Sale Recap"},
+    {type:"event", label:"Guest Speaker: Alum Founder"},
+    {type:"achievement", label:"New Member Record: 40+"},
+    {type:"fundraiser", label:"Sponsor Drive"},
+  ],
+  "Lincoln HS Econ Society": [
+    {type:"event", label:"Market Simulation Day"},
+    {type:"achievement", label:"2nd Place — Regional Econ Bowl"},
+    {type:"fundraiser", label:"Workshop Fee Drive"},
+  ],
+  "Bayview Entrepreneurs": [
+    {type:"fundraiser", label:"Bake Sale Recap"},
+    {type:"event", label:"Pitch Workshop"},
+  ],
+};
 
-/* ---------------- IDs + shared shape so posts/comments/stories can be deleted and zoomed into ---------------- */
+/* ---------------- IDs + shared shape so posts/comments/stories/reels can be deleted and zoomed into ---------------- */
 let nextId = 1000;
 feedPosts.forEach(p=>{
   p.id = nextId++;
   p.media = p.media || null;
   (p.comments||[]).forEach(c=>{ c.id = nextId++; });
 });
-gridPosts.forEach(p=>{
-  p.id = nextId++;
-  p.club = p.club || "CCA Business Club";
-  p.confirmed = p.confirmed !== undefined ? p.confirmed : true;
-  p.date = p.date || "—";
-  p.responsible = p.responsible || "CCA Business Club";
-  p.desc = p.desc || p.label;
-  p.commentsOpen = p.commentsOpen !== undefined ? p.commentsOpen : true;
-  p.likes = p.likes || 0;
-  p.comments = p.comments || [];
-  p.media = p.media || null;
+clubs.forEach(club=>{
+  clubGridPosts[club].forEach(p=>{
+    p.id = nextId++;
+    p.club = club;
+    p.confirmed = p.confirmed !== undefined ? p.confirmed : true;
+    p.date = p.date || "—";
+    p.responsible = p.responsible || club;
+    p.desc = p.desc || p.label;
+    p.commentsOpen = p.commentsOpen !== undefined ? p.commentsOpen : true;
+    p.likes = p.likes || 0;
+    p.comments = p.comments || [];
+    p.media = p.media || null;
+  });
+  clubStories[club].forEach(s=>{ s.id = nextId++; });
+  clubReels[club].forEach(r=>{ r.id = nextId++; });
 });
-stories.forEach(s=>{ s.id = nextId++; });
 
-const arrRegistry = { feed: feedPosts, grid: gridPosts };
+function getArr(name){ return name==="feed" ? feedPosts : clubGridPosts[currentViewedClub]; }
 function findById(arr, id){ return arr.find(x=>x.id===id); }
 
 /* ---------------- ROLE / PERMISSIONS ---------------- */
@@ -574,7 +665,8 @@ const rolePerms = {
 };
 let currentRole = "business";
 let currentClub = clubs[0]; // which club's business account is "logged in" (only meaningful when currentRole === "business")
-const CLUB_PAGE_OWNER = "CCA Business Club"; // the club that owns this Individual Business Club Page
+let currentViewedClub = clubs[0]; // which club's Individual Business Club Page is currently on screen
+const followedClubs = ["CCA Business Club"]; // mock: the demo account follows its own club
 
 // Staff can delete any post/story. A business account can only delete posts/stories that belong to ITS OWN club.
 function canDelete(post){
@@ -582,10 +674,10 @@ function canDelete(post){
   if(currentRole==="business") return post.club === currentClub;
   return false;
 }
-// Editing the club page itself (new post, drag-reorder, story deletion) is limited to staff or that club's own business account.
+// Editing the club page itself (new post, drag-reorder, story/reel deletion) is limited to staff or the account of the club whose page is being viewed.
 function canManageClubPage(){
   if(currentRole==="staff") return true;
-  if(currentRole==="business") return currentClub === CLUB_PAGE_OWNER;
+  if(currentRole==="business") return currentClub === currentViewedClub;
   return false;
 }
 
@@ -597,14 +689,34 @@ function toast(msg){
   t._timer=setTimeout(()=>t.classList.remove("show"),1800);
 }
 
-/* ---------------- RENDER: REELS ---------------- */
+/* ---------------- RENDER: CLUBS DIRECTORY (Home Page) ---------------- */
+function renderClubsRow(){
+  const row=document.getElementById("clubsRow");
+  if(!row) return;
+  row.innerHTML = clubs.map(c=>`
+    <div class="club-card" onclick="navigateToClub('${c.replace(/'/g,"\\'")}')">
+      <div class="cc-banner"></div>
+      <div class="cc-body">
+        <div class="cc-name">${c}</div>
+        <div class="cc-tagline">${clubMeta[c].tagline}</div>
+        <div class="cc-link">View Club Page →</div>
+      </div>
+    </div>`).join("");
+}
+
+/* ---------------- RENDER: REELS (Home Page, all clubs, filterable by school) ---------------- */
 function renderReels(){
   const row=document.getElementById("reelsRow");
-  row.innerHTML = reels.map(r=>`
-    <div class="reel" title="${r.club}: ${r.label}">
+  if(!row) return;
+  const schoolFilter = document.getElementById("homeSchoolFilter") ? document.getElementById("homeSchoolFilter").value : "all";
+  let all = [];
+  clubs.forEach(c=> clubReels[c].forEach(r=> all.push({...r, club:c})) );
+  if(schoolFilter!=="all") all = all.filter(r=>r.club===schoolFilter);
+  row.innerHTML = all.length ? all.map(r=>`
+    <div class="reel" title="${r.club}: ${r.label}" onclick="navigateToClub('${r.club.replace(/'/g,"\\'")}')">
       <div class="reelclub">${r.club.split(" ")[0]}</div>
       <span>${r.label}</span>
-    </div>`).join("");
+    </div>`).join("") : `<div class="form-hint">No reels match your current filters.</div>`;
 }
 
 /* ---------------- RENDER: HOME FEED ---------------- */
@@ -618,15 +730,42 @@ function feedCommentsHtml(arrName, p){
   `;
 }
 
+function getFilteredFeedPosts(){
+  const school = document.getElementById("homeSchoolFilter") ? document.getElementById("homeSchoolFilter").value : "all";
+  const topic = document.getElementById("homeTopicFilter") ? document.getElementById("homeTopicFilter").value : "all";
+  const time = document.getElementById("homeTimeFilter") ? document.getElementById("homeTimeFilter").value : "all";
+  const now = new Date();
+  return feedPosts.filter(p=>{
+    if(school!=="all" && p.club!==school) return false;
+    if(topic!=="all" && p.type!==topic) return false;
+    if(time!=="all"){
+      const d = new Date(p.date);
+      if(!isNaN(d)){
+        const diffDays = (now - d)/(1000*60*60*24);
+        if(time==="today" && diffDays>1) return false;
+        if(time==="week" && diffDays>7) return false;
+        if(time==="month" && diffDays>31) return false;
+      }
+    }
+    if(currentHomeFeedTab==="following" && !followedClubs.includes(p.club)) return false;
+    return true;
+  });
+}
+
 function renderFeed(){
   const feed=document.getElementById("feed");
-  const perms=rolePerms[currentRole];
-  feed.innerHTML = feedPosts.map((p,i)=>`
-    <article class="post" data-i="${i}" onclick="openDetail('feed', ${p.id})">
+  const list = getFilteredFeedPosts();
+  const emptyHint = document.getElementById("feedEmptyHint");
+  if(emptyHint) emptyHint.style.display = list.length ? "none" : "block";
+  feed.innerHTML = list.map(p=>`
+    <article class="post" data-id="${p.id}" onclick="openDetail('feed', ${p.id})">
       <div class="post-head">
         <div class="avatar">${initials(p.club)}</div>
         <div class="meta">
-          <div class="clubname">${p.club} ${p.confirmed?'<span class="check">✔</span>':''}</div>
+          <div class="clubname">
+            <span onclick="event.stopPropagation(); navigateToClub('${p.club.replace(/'/g,"\\'")}')" style="cursor:pointer;">${p.club}</span>
+            ${p.confirmed?'<span class="check">✔</span>':''}
+          </div>
           <div class="subline">${p.date} · Posted by ${p.responsible}</div>
         </div>
         <div class="menu-wrap" onclick="event.stopPropagation()">
@@ -642,16 +781,16 @@ function renderFeed(){
       <div class="post-media">${p.media ? `<img src="${p.media}" style="width:100%;height:100%;object-fit:cover;">` : "📷 Photo / Video attached"}</div>
       <div class="post-body"><div class="post-desc">${p.desc}</div></div>
       <div class="post-actions" onclick="event.stopPropagation()">
-        <button onclick="toggleLike(this,${i})">❤️ <span class="likecount">${p.likes}</span></button>
-        <button onclick="toggleComments(${i})">💬 ${p.comments.length} Comment${p.comments.length!==1?'s':''}</button>
+        <button onclick="toggleLike(this,${p.id})">❤️ <span class="likecount">${p.likes}</span></button>
+        <button onclick="toggleComments(${p.id})">💬 ${p.comments.length} Comment${p.comments.length!==1?'s':''}</button>
         <button onclick="toast('Saved')">🔖 Save</button>
         <button onclick="toast('Shared')">↗ Share</button>
       </div>
-      <div class="comments" id="comments-${i}" onclick="event.stopPropagation()">
+      <div class="comments" id="comments-${p.id}" onclick="event.stopPropagation()">
         ${feedCommentsHtml('feed', p)}
         <div class="row">
-          <input placeholder="Add a comment..." id="commentInput-${i}">
-          <button class="icon-btn" style="background:var(--navy);color:#fff;border:none;" onclick="addComment(${i})">Post</button>
+          <input placeholder="Add a comment..." id="commentInput-${p.id}">
+          <button class="icon-btn" style="background:var(--navy);color:#fff;border:none;" onclick="addComment(${p.id})">Post</button>
         </div>
       </div>
     </article>
@@ -667,31 +806,55 @@ document.addEventListener("click",(e)=>{
   if(!e.target.closest(".menu-wrap")) document.querySelectorAll(".menu-dropdown.open").forEach(d=>d.classList.remove("open"));
 });
 
-function toggleLike(btn,i){
+function toggleLike(btn,id){
   const perms=rolePerms[currentRole];
   if(!perms.like) return;
+  const p=findById(feedPosts,id);
   const span=btn.querySelector(".likecount");
   const liked=btn.classList.toggle("liked");
-  span.textContent = liked ? feedPosts[i].likes+1 : feedPosts[i].likes;
+  span.textContent = liked ? p.likes+1 : p.likes;
 }
 
-function toggleComments(i){
-  document.getElementById(`comments-${i}`).classList.toggle("open");
+function toggleComments(id){
+  document.getElementById(`comments-${id}`).classList.toggle("open");
 }
 
-function addComment(i){
+function addComment(id){
   const perms=rolePerms[currentRole];
-  const input=document.getElementById(`commentInput-${i}`);
+  const input=document.getElementById(`commentInput-${id}`);
   if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
   if(!input.value.trim()) return;
-  feedPosts[i].comments.push({id: nextId++, name: currentRole==="business" ? currentClub : "You", text:input.value.trim()});
+  const p=findById(feedPosts,id);
+  p.comments.push({id: nextId++, name: currentRole==="business" ? currentClub : "You", text:input.value.trim()});
   renderFeed();
-  document.getElementById(`comments-${i}`).classList.add("open");
+  document.getElementById(`comments-${id}`).classList.add("open");
 }
 
 /* ---------------- RENDER: CLUB PAGE ---------------- */
+function navigateToClub(name){
+  if(!clubs.includes(name)) return;
+  currentViewedClub = name;
+  document.querySelectorAll(".pagenav button").forEach(b=>b.classList.remove("active"));
+  document.querySelector('.pagenav button[data-page="club"]').classList.add("active");
+  document.getElementById("page-home").style.display = "none";
+  document.getElementById("page-club").style.display = "block";
+  renderClubPage();
+  window.scrollTo({top:0, behavior:"smooth"});
+  toast(`Viewing ${name}`);
+}
+
+function renderClubPage(){
+  document.getElementById("clubPageTitle").textContent = currentViewedClub;
+  document.getElementById("clubPageTagline").textContent = clubMeta[currentViewedClub].tagline;
+  renderMembers();
+  renderStories();
+  renderClubReels();
+  renderGrid(currentFilter);
+  applyPermissions();
+}
+
 function renderMembers(){
-  document.getElementById("membersRow").innerHTML = members.map(m=>`
+  document.getElementById("membersRow").innerHTML = clubMembers[currentViewedClub].map(m=>`
     <div class="member-card">
       <div class="avatar">${initials(m.name)}</div>
       <div class="name">${m.name}</div>
@@ -700,7 +863,7 @@ function renderMembers(){
 }
 
 function renderStories(){
-  document.getElementById("storyRow").innerHTML = stories.map(s=>`
+  document.getElementById("storyRow").innerHTML = clubStories[currentViewedClub].map(s=>`
     <div class="story ${s.expired?'expired':''}" onclick="${s.expired?`toast('This story has expired')`:`toast('Opening story: ${s.name}')`}">
       ${canManageClubPage() ? `<button class="delete-x" onclick="event.stopPropagation(); deleteStory(${s.id})">✕</button>` : ""}
       <div class="ring"><div class="avatar">${initials(s.name)}</div></div>
@@ -710,25 +873,64 @@ function renderStories(){
 
 function deleteStory(id){
   askConfirm("Delete this story?", ()=>{
-    const idx = stories.findIndex(s=>s.id===id);
+    const list = clubStories[currentViewedClub];
+    const idx = list.findIndex(s=>s.id===id);
     if(idx<0) return;
-    stories.splice(idx,1);
+    list.splice(idx,1);
     renderStories();
     toast("Story deleted");
   });
+}
+
+/* ---------------- RENDER: REELS (Club Page, per-club, editable) ---------------- */
+function renderClubReels(){
+  const row=document.getElementById("clubReelsRow");
+  if(!row) return;
+  const manage = canManageClubPage();
+  const list = clubReels[currentViewedClub];
+  row.innerHTML = (list.length ? list.map(r=>`
+    <div class="reel">
+      ${manage ? `<button class="delete-x" onclick="event.stopPropagation(); deleteReel(${r.id})">✕</button>` : ""}
+      <span>${r.label}</span>
+    </div>`).join("") : `<div class="form-hint">No reels yet.</div>`);
+  const addBtn=document.getElementById("newReelBtn");
+  if(addBtn) addBtn.style.display = manage ? "flex" : "none";
+}
+
+function deleteReel(id){
+  askConfirm("Delete this reel?", ()=>{
+    const list = clubReels[currentViewedClub];
+    const idx = list.findIndex(r=>r.id===id);
+    if(idx<0) return;
+    list.splice(idx,1);
+    renderClubReels();
+    renderReels();
+    toast("Reel deleted");
+  });
+}
+
+function openReelModal(){
+  document.getElementById("reelLabelInput").value = "";
+  document.getElementById("err-reel").classList.remove("show");
+  document.getElementById("reelModal").classList.add("open");
+}
+function closeReelModal(){
+  document.getElementById("reelModal").classList.remove("open");
 }
 
 let dragSrcIndex=null;
 function renderGrid(filter="all"){
   const grid=document.getElementById("postGrid");
   const manage = canManageClubPage();
-  const list = filter==="all" ? gridPosts : gridPosts.filter(p=>p.type===filter);
-  grid.innerHTML = list.map((p,i)=>`
-    <div class="grid-block" draggable="${manage}" data-i="${gridPosts.indexOf(p)}" onclick="openDetail('grid', ${p.id})" style="${p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:""}">
+  const clubList = clubGridPosts[currentViewedClub];
+  let list = filter==="all" ? clubList.slice() : clubList.filter(p=>p.type===filter);
+  if(currentSort==="oldest") list = list.slice().reverse();
+  grid.innerHTML = list.length ? list.map(p=>`
+    <div class="grid-block" draggable="${manage}" data-i="${clubList.indexOf(p)}" onclick="openDetail('grid', ${p.id})" style="${p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:""}">
       ${canDelete(p) ? `<button class="delete-x" onclick="event.stopPropagation(); deletePost('grid', ${p.id})">✕</button>` : ""}
       <span class="tag">${p.type}</span>
       ${p.label}
-    </div>`).join("");
+    </div>`).join("") : `<div class="form-hint">No posts match this filter.</div>`;
 
   if(!manage) return;
   const blocks=grid.querySelectorAll(".grid-block");
@@ -740,8 +942,9 @@ function renderGrid(filter="all"){
     b.addEventListener("drop", e=>{
       e.preventDefault(); b.classList.remove("over");
       const targetIndex=+b.dataset.i;
-      const [moved]=gridPosts.splice(dragSrcIndex,1);
-      gridPosts.splice(targetIndex,0,moved);
+      const arr = clubGridPosts[currentViewedClub];
+      const [moved]=arr.splice(dragSrcIndex,1);
+      arr.splice(targetIndex,0,moved);
       renderGrid(currentFilter);
       toast("Layout updated");
     });
@@ -749,6 +952,7 @@ function renderGrid(filter="all"){
 }
 
 let currentFilter="all";
+let currentSort="newest";
 document.querySelectorAll('[data-type]').forEach(chip=>{
   chip.addEventListener("click",()=>{
     document.querySelectorAll('[data-type]').forEach(c=>c.classList.remove("active"));
@@ -756,6 +960,10 @@ document.querySelectorAll('[data-type]').forEach(chip=>{
     currentFilter=chip.dataset.type;
     renderGrid(currentFilter);
   });
+});
+document.getElementById("gridSort").addEventListener("change",(e)=>{
+  currentSort = e.target.value;
+  renderGrid(currentFilter);
 });
 
 /* ---------------- CUSTOM CONFIRM (non-blocking, unlike window.confirm) ---------------- */
@@ -781,7 +989,7 @@ document.getElementById("confirmModal").addEventListener("click",(e)=>{
 /* ---------------- DELETE POSTS / COMMENTS ---------------- */
 function deletePost(arrName, id){
   askConfirm("Delete this post? This can't be undone.", ()=>{
-    const arr = arrRegistry[arrName];
+    const arr = getArr(arrName);
     const idx = arr.findIndex(x=>x.id===id);
     if(idx<0) return;
     arr.splice(idx,1);
@@ -793,7 +1001,7 @@ function deletePost(arrName, id){
 }
 
 function deleteComment(arrName, postId, commentId){
-  const arr = arrRegistry[arrName];
+  const arr = getArr(arrName);
   const p = findById(arr, postId);
   if(!p) return;
   const idx = p.comments.findIndex(c=>c.id===commentId);
@@ -809,7 +1017,7 @@ function deleteComment(arrName, postId, commentId){
 let currentDetail = null; // {arrName, id}
 
 function openDetail(arrName, id){
-  const arr = arrRegistry[arrName];
+  const arr = getArr(arrName);
   const p = findById(arr, id);
   if(!p) return;
   currentDetail = {arrName, id};
@@ -824,7 +1032,7 @@ function closeDetailModal(){
 
 function renderDetail(){
   if(!currentDetail) return;
-  const arr = arrRegistry[currentDetail.arrName];
+  const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
   if(!p){ closeDetailModal(); return; }
 
@@ -857,7 +1065,7 @@ function renderDetail(){
 function toggleLikeDetail(btn){
   const perms = rolePerms[currentRole];
   if(!perms.like) return;
-  const arr = arrRegistry[currentDetail.arrName];
+  const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
   const liked = btn.classList.toggle("liked");
   p.likes = liked ? p.likes+1 : Math.max(0, p.likes-1);
@@ -871,7 +1079,7 @@ function addDetailComment(){
   const input = document.getElementById("detailCommentInput");
   if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
   if(!input.value.trim()) return;
-  const arr = arrRegistry[currentDetail.arrName];
+  const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
   p.comments.push({id: nextId++, name: currentRole==='business' ? currentClub : "You", text: input.value.trim()});
   renderDetail();
@@ -915,13 +1123,13 @@ function applyPermissions(){
   const manage = canManageClubPage();
   if(currentRole==="staff"){
     note.style.display="block";
-    note.innerHTML="You're viewing as <b>Staff</b> — you can edit or delete any post, comment, or story on this page and view its report history.";
+    note.innerHTML=`You're viewing as <b>Staff</b> — you can edit or delete any post, comment, story, or reel on ${currentViewedClub}'s page and view its report history.`;
   } else if(currentRole==="business" && manage){
     note.style.display="block";
-    note.innerHTML=`You're viewing this page as the <b>${currentClub} Account</b> — you can drag posts to rearrange them, publish new posts, and delete your own posts/stories.`;
+    note.innerHTML=`You're viewing this page as the <b>${currentClub} Account</b> — you can drag posts to rearrange them, publish new posts/reels, and delete your own posts/stories/reels.`;
   } else if(currentRole==="business"){
     note.style.display="block";
-    note.innerHTML=`You're viewing this page as <b>${currentClub} Account</b> — this page belongs to a different club, so you can view it but can't edit, post, or delete its content.`;
+    note.innerHTML=`You're viewing this page as <b>${currentClub} Account</b> — this page belongs to a different club (${currentViewedClub}), so you can view it but can't edit, post, or delete its content.`;
   } else {
     note.style.display="none";
   }
@@ -931,6 +1139,7 @@ function applyPermissions(){
 
   renderGrid(currentFilter);
   renderStories();
+  renderClubReels();
 }
 
 document.getElementById("roleSelect").addEventListener("change",(e)=>{
@@ -946,6 +1155,23 @@ document.getElementById("clubSelect").addEventListener("change",(e)=>{
   applyPermissions();
   renderFeed();
   toast(`Now managing as ${currentClub}`);
+});
+
+/* ---------------- HOME PAGE FILTERS ---------------- */
+let currentHomeFeedTab = "foryou";
+["homeSchoolFilter","homeTopicFilter","homeTimeFilter"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", ()=>{
+    renderFeed();
+    renderReels();
+  });
+});
+document.querySelectorAll('#page-home [data-feedtab]').forEach(chip=>{
+  chip.addEventListener("click",()=>{
+    document.querySelectorAll('#page-home [data-feedtab]').forEach(c=>c.classList.remove("active"));
+    chip.classList.add("active");
+    currentHomeFeedTab = chip.dataset.feedtab;
+    renderFeed();
+  });
 });
 
 /* ---------------- PAGE NAV ---------------- */
@@ -967,8 +1193,9 @@ document.getElementById("helpModal").addEventListener("click",(e)=>{ if(e.target
 document.getElementById("searchInput").addEventListener("input",(e)=>{
   const q=e.target.value.toLowerCase();
   document.querySelectorAll("#feed .post").forEach(post=>{
-    const i=+post.dataset.i;
-    const text=(feedPosts[i].club+" "+feedPosts[i].desc).toLowerCase();
+    const p=findById(feedPosts, +post.dataset.id);
+    if(!p) return;
+    const text=(p.club+" "+p.desc).toLowerCase();
     post.style.display = text.includes(q) ? "block" : "none";
   });
 });
@@ -1058,24 +1285,37 @@ document.getElementById("newPostForm").addEventListener("submit",(e)=>{
   // stay in sync while the grid and feed can still each independently drop it from their own list.
   const newPost = {
     id: nextId++, type, label: desc.length>40 ? desc.slice(0,40)+"…" : desc,
-    club:"CCA Business Club", confirmed:true, date: dateLabel, responsible: `${responsible} (${contact})`,
+    club: currentViewedClub, confirmed:true, date: dateLabel, responsible: `${responsible} (${contact})`,
     desc, commentsOpen, likes:0, comments:[], media: mediaUrl
   };
-  gridPosts.unshift(newPost);
+  clubGridPosts[currentViewedClub].unshift(newPost);
   feedPosts.unshift(newPost);
 
   renderGrid(currentFilter);
   renderFeed();
   closePostModal();
-  toast("Post published — check the Home feed and the grid above");
+  toast(`Post published to ${currentViewedClub} — check the Home feed and the grid above`);
+});
+
+document.getElementById("newReelBtn").addEventListener("click", openReelModal);
+document.getElementById("closeReelModal").addEventListener("click", closeReelModal);
+document.getElementById("cancelReelBtn").addEventListener("click", closeReelModal);
+document.getElementById("reelModal").addEventListener("click",(e)=>{ if(e.target.id==="reelModal") closeReelModal(); });
+document.getElementById("saveReelBtn").addEventListener("click", ()=>{
+  const label = document.getElementById("reelLabelInput").value.trim();
+  if(!label){ document.getElementById("err-reel").classList.add("show"); return; }
+  clubReels[currentViewedClub].unshift({id: nextId++, label});
+  renderClubReels();
+  renderReels();
+  closeReelModal();
+  toast(`Reel added to ${currentViewedClub}`);
 });
 
 /* ---------------- INIT ---------------- */
+renderClubsRow();
 renderReels();
 renderFeed();
-renderMembers();
-renderStories();
-renderGrid();
+renderClubPage();
 </script>
 </body>
 </html>
