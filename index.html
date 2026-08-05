@@ -351,10 +351,11 @@
     <select class="role-select" id="roleSelect">
       <option value="public">Public Account</option>
       <option value="student">Student Account</option>
-      <option value="business" selected>Business Club Account</option>
-      <option value="staff">Staff Account</option>
+      <option value="business" selected>Club Manager Account</option>
+      <option value="staff">Administrator Account</option>
     </select>
     <select class="role-select" id="clubSelect" style="display:none;"></select>
+    <select class="role-select" id="studentSelect" style="display:none;"></select>
     <button class="icon-btn" id="helpBtn">❓ Help</button>
     <div class="avatar" id="acctAvatar">M</div>
   </div>
@@ -405,7 +406,7 @@
 
   <!-- ================= CLUB PAGE ================= -->
   <section id="page-club" style="display:none;">
-    <div class="role-note" id="clubOwnerNote">You're viewing this page as a <b>Business Club Account</b> — you can drag posts to rearrange them and edit page content.</div>
+    <div class="role-note" id="clubOwnerNote">You're viewing this page as a <b>Club Manager Account</b> — you can drag posts to rearrange them and edit page content.</div>
 
     <div class="club-header">
       <div class="banner">
@@ -439,7 +440,7 @@
     <div class="grid-toolbar">
       <div class="section-label" style="margin:0;">Posts</div>
       <div style="display:flex;align-items:center;gap:14px;">
-        <div class="hint">Drag a tile to reorder (Business Club / Staff accounts only)</div>
+        <div class="hint">Drag a tile to reorder (Club Manager / Administrator accounts only)</div>
         <button class="new-post-btn" id="newPostBtn">+ New Post</button>
       </div>
     </div>
@@ -537,6 +538,71 @@
       </div>
     </div>
     <div id="mpBody"></div>
+    <div class="form-actions">
+      <button type="button" class="btn-primary" id="editProfileBtn" style="display:none;">Edit Profile</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="editMemberModal">
+  <div class="modal wide">
+    <button class="close" id="closeEditMemberModal">✕</button>
+    <h3>Edit Profile</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Name <span class="req">*</span></label>
+        <input type="text" id="editMemberName">
+      </div>
+      <div class="form-group">
+        <label>Current Position <span class="req">*</span></label>
+        <input type="text" id="editMemberRole">
+      </div>
+    </div>
+    <div class="field-error" id="err-membername">Name and current position are required.</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Contact</label>
+        <input type="text" id="editMemberContact" placeholder="Email or phone">
+      </div>
+      <div class="form-group">
+        <label>Grade</label>
+        <input type="text" id="editMemberGrade" placeholder="e.g. Grade 11">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Joined</label>
+      <input type="text" id="editMemberJoined" placeholder="e.g. Fall 2024">
+    </div>
+    <div class="form-group">
+      <label>About</label>
+      <textarea id="editMemberBio" placeholder="Short bio"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Past Positions</label>
+      <div id="editPastRolesList"></div>
+      <button type="button" class="btn-secondary" id="addPastRoleBtn" style="margin-top:6px;">+ Add Past Position</button>
+    </div>
+
+    <div class="form-group" id="editMemberLevelsWrap" style="display:none;">
+      <label>Account Levels</label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;font-size:14px;margin-bottom:6px;">
+        <input type="checkbox" id="lvlStudent"> Student Account
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;font-size:14px;margin-bottom:6px;">
+        <input type="checkbox" id="lvlManager"> Club Manager Account
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;font-size:14px;margin-bottom:0;">
+        <input type="checkbox" id="lvlAdmin"> Administrator Account
+      </label>
+      <div class="form-hint">Only Administrator accounts can grant or remove account levels.</div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" id="cancelEditMemberBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="saveEditMemberBtn">Save Changes</button>
+    </div>
   </div>
 </div>
 
@@ -635,7 +701,7 @@
       <li><b>Filter system</b> — narrow the feed or a club page by school, topic, date, or post type.</li>
       <li><b>Reels</b> — short-form video posts, swipe through the horizontal row.</li>
       <li><b>Report system</b> — flag a post from its ⋮ menu; staff review all reports.</li>
-      <li><b>Account roles</b> — Public (view/like only), Student (like/comment/save/repost/share), Business Club (edit own page, reply to comments), Staff (edit any post, view reports).</li>
+      <li><b>Account roles</b> — Public (view/like only), Student (like/comment/save/repost/share, edit own profile), Club Manager (also a Student account, plus edit own page and reply to comments), Administrator (edit any post, any profile, and grant/revoke account levels).</li>
       <li><b>Stories</b> — time-limited posts on a club page that expire automatically after 24 hrs.</li>
       <li><b>Posts Placement</b> — business club accounts can drag grid tiles to customize their page layout.</li>
     </ul>
@@ -678,34 +744,36 @@ const feedPosts = [
   },
 ];
 
+const ACCOUNT_LEVELS = ["Student Account","Club Manager Account","Administrator Account"];
+
 const clubMembers = {
   "CCA Business Club": [
-    {name:"Maxwell Lin", role:"President", accountLevel:"Business Club Account", contact:"maxwell.lin@cca.edu", grade:"Grade 11", joined:"Fall 2024",
+    {name:"Maxwell Lin", role:"President", accountLevels:["Student Account","Club Manager Account"], contact:"maxwell.lin@cca.edu", grade:"Grade 11", joined:"Fall 2024",
       bio:"Founded the club's National Economics Challenge team and manages the club's official account.",
       pastRoles:["Vice President (2024–2025)","Member (2023–2024)"]},
-    {name:"Michelle", role:"Vice President", accountLevel:"Student Account", contact:"michelle@cca.edu", grade:"Grade 11", joined:"Fall 2024",
+    {name:"Michelle", role:"Vice President", accountLevels:["Student Account"], contact:"michelle@cca.edu", grade:"Grade 11", joined:"Fall 2024",
       bio:"Leads weekly case-study workshops and coordinates with guest speakers.",
       pastRoles:["Events Lead (2024–2025)"]},
-    {name:"Wilson Lin", role:"Secretary/Treasurer", accountLevel:"Student Account", contact:"wilson.lin@cca.edu", grade:"Grade 10", joined:"Spring 2025",
+    {name:"Wilson Lin", role:"Secretary/Treasurer", accountLevels:["Student Account"], contact:"wilson.lin@cca.edu", grade:"Grade 10", joined:"Spring 2025",
       bio:"Manages the club's budget, dues, and meeting minutes.",
       pastRoles:["Member (2024–2025)"]},
-    {name:"D. Park", role:"Events Lead", accountLevel:"Student Account", contact:"d.park@cca.edu", grade:"Grade 11", joined:"Fall 2024",
+    {name:"D. Park", role:"Events Lead", accountLevels:["Student Account"], contact:"d.park@cca.edu", grade:"Grade 11", joined:"Fall 2024",
       bio:"Organizes pitch nights, bake sales, and guest speaker sessions.",
       pastRoles:[]},
   ],
   "Lincoln HS Econ Society": [
-    {name:"D. Park", role:"President", accountLevel:"Business Club Account", contact:"d.park@lincolnhs.edu", grade:"Grade 12", joined:"Fall 2023",
+    {name:"D. Park", role:"President", accountLevels:["Student Account","Club Manager Account"], contact:"d.park@lincolnhs.edu", grade:"Grade 12", joined:"Fall 2023",
       bio:"Oversees the society's market simulation program.",
       pastRoles:["Vice President (2023–2024)"]},
-    {name:"Anna R.", role:"Vice President", accountLevel:"Student Account", contact:"anna.r@lincolnhs.edu", grade:"Grade 11", joined:"Fall 2024",
+    {name:"Anna R.", role:"Vice President", accountLevels:["Student Account"], contact:"anna.r@lincolnhs.edu", grade:"Grade 11", joined:"Fall 2024",
       bio:"Runs the society's guest speaker series.",
       pastRoles:[]},
   ],
   "Bayview Entrepreneurs": [
-    {name:"Sara K.", role:"President", accountLevel:"Business Club Account", contact:"sara.k@bayviewhs.edu", grade:"Grade 12", joined:"Fall 2023",
+    {name:"Sara K.", role:"President", accountLevels:["Student Account","Club Manager Account"], contact:"sara.k@bayviewhs.edu", grade:"Grade 12", joined:"Fall 2023",
       bio:"Leads the club's fundraiser planning and sponsor outreach.",
       pastRoles:["Treasurer (2023–2024)"]},
-    {name:"T. Nguyen", role:"Treasurer", accountLevel:"Student Account", contact:"t.nguyen@bayviewhs.edu", grade:"Grade 10", joined:"Spring 2025",
+    {name:"T. Nguyen", role:"Treasurer", accountLevels:["Student Account"], contact:"t.nguyen@bayviewhs.edu", grade:"Grade 10", joined:"Spring 2025",
       bio:"Tracks fundraiser proceeds and club spending.",
       pastRoles:[]},
   ],
@@ -774,6 +842,15 @@ clubs.forEach(club=>{
     r.likes = r.likes || 0;
     r.comments = r.comments || [];
   });
+  clubMembers[club].forEach(m=>{
+    m.id = nextId++;
+    m.accountLevels = m.accountLevels && m.accountLevels.length ? m.accountLevels : ["Student Account"];
+    m.pastRoles = m.pastRoles || [];
+    m.contact = m.contact || "";
+    m.grade = m.grade || "";
+    m.joined = m.joined || "";
+    m.bio = m.bio || "";
+  });
 });
 
 function getArr(name){ return name==="feed" ? feedPosts : clubGridPosts[currentViewedClub]; }
@@ -782,6 +859,13 @@ function findReelById(id){
   for(const c of clubs){
     const r = clubReels[c].find(x=>x.id===id);
     if(r) return r;
+  }
+  return null;
+}
+function findMemberById(id){
+  for(const c of clubs){
+    const idx = clubMembers[c].findIndex(x=>x.id===id);
+    if(idx>-1) return {member: clubMembers[c][idx], club: c, idx};
   }
   return null;
 }
@@ -794,17 +878,18 @@ const rolePerms = {
   staff:    {like:true,  comment:true,  save:true,  repost:true,  share:true,  editPage:true,  drag:true},
 };
 let currentRole = "business";
-let currentClub = clubs[0]; // which club's business account is "logged in" (only meaningful when currentRole === "business")
+let currentClub = clubs[0]; // which club's Club Manager account is "logged in" (only meaningful when currentRole === "business")
 let currentViewedClub = clubs[0]; // which club's Individual Business Club Page is currently on screen
+let currentStudentMemberId = null; // which student member "you" are logged in as (only meaningful when currentRole === "student")
 const followedClubs = ["CCA Business Club"]; // mock: the demo account follows its own club
 
-// Staff can delete any post/story. A business account can only delete posts/stories that belong to ITS OWN club.
+// Administrators (staff) can delete any post/story. A Club Manager account can only delete posts/stories that belong to ITS OWN club.
 function canDelete(post){
   if(currentRole==="staff") return true;
   if(currentRole==="business") return post.club === currentClub;
   return false;
 }
-// Editing the club page itself (new post, drag-reorder, story/reel deletion) is limited to staff or the account of the club whose page is being viewed.
+// Editing the club page itself (new post, drag-reorder, story/reel deletion) is limited to administrators or the account of the club whose page is being viewed.
 function canManageClubPage(){
   if(currentRole==="staff") return true;
   if(currentRole==="business") return currentClub === currentViewedClub;
@@ -817,12 +902,44 @@ function canManageReel(reel){
   if(currentRole==="business") return currentClub === reel.club;
   return false;
 }
+// Each account can edit its own profile: a student edits the specific member "they" are logged in as,
+// a Club Manager account edits its own club's manager profile, and Administrators can edit anyone's profile.
+function canEditMemberProfile(club, idx){
+  const m = clubMembers[club] && clubMembers[club][idx];
+  if(!m) return false;
+  if(currentRole==="staff") return true;
+  if(currentRole==="business") return club===currentClub && (m.accountLevels||[]).includes("Club Manager Account");
+  if(currentRole==="student") return m.id === currentStudentMemberId;
+  return false;
+}
+// Only Administrators may grant or remove account levels on a member (add/delete access).
+function canManageAccountLevels(){
+  return currentRole==="staff";
+}
 
 /* ---------------- CLUB IDENTITY (name / description / roster edits) ---------------- */
 function rebuildClubSelectOptions(){
   const clubSelect = document.getElementById("clubSelect");
-  clubSelect.innerHTML = clubs.map(c=>`<option value="${c}">${c} Account</option>`).join("");
+  clubSelect.innerHTML = clubs.map(c=>`<option value="${c}">${c} (Club Manager)</option>`).join("");
   clubSelect.value = clubs.includes(currentClub) ? currentClub : clubs[0];
+}
+
+// Lets the demo pick WHICH student "you" are logged in as, since Student is a shared role across many members.
+function getAllStudentMembers(){
+  const list = [];
+  clubs.forEach(c=> clubMembers[c].forEach(m=>{
+    if((m.accountLevels||[]).includes("Student Account")) list.push({id:m.id, name:m.name, club:c});
+  }));
+  return list;
+}
+function rebuildStudentSelectOptions(){
+  const sel = document.getElementById("studentSelect");
+  const list = getAllStudentMembers();
+  sel.innerHTML = list.map(x=>`<option value="${x.id}">${x.name} — ${x.club}</option>`).join("");
+  if(!list.some(x=>x.id===currentStudentMemberId)){
+    currentStudentMemberId = list.length ? list[0].id : null;
+  }
+  if(currentStudentMemberId!==null) sel.value = currentStudentMemberId;
 }
 function rebuildHomeSchoolFilterOptions(){
   const hsf = document.getElementById("homeSchoolFilter");
@@ -1001,7 +1118,7 @@ function toggleComments(id){
 function addComment(id){
   const perms=rolePerms[currentRole];
   const input=document.getElementById(`commentInput-${id}`);
-  if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
+  if(!perms.comment){ toast("Only Student, Club Manager, or Administrator accounts can comment"); return; }
   if(!input.value.trim()) return;
   const p=findById(feedPosts,id);
   p.comments.push({id: nextId++, name: currentRole==="business" ? currentClub : "You", text:input.value.trim()});
@@ -1156,7 +1273,7 @@ function toggleReelLike(btn){
 function addReelComment(){
   const perms = rolePerms[currentRole];
   const input = document.getElementById("reelCommentInput");
-  if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
+  if(!perms.comment){ toast("Only Student, Club Manager, or Administrator accounts can comment"); return; }
   if(!input.value.trim()) return;
   const r = findReelById(currentReelId);
   if(!r) return;
@@ -1349,7 +1466,7 @@ function toggleLikeDetail(btn){
 function addDetailComment(){
   const perms = rolePerms[currentRole];
   const input = document.getElementById("detailCommentInput");
-  if(!perms.comment){ toast("Only Student, Business Club, or Staff accounts can comment"); return; }
+  if(!perms.comment){ toast("Only Student, Club Manager, or Administrator accounts can comment"); return; }
   if(!input.value.trim()) return;
   const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
@@ -1385,20 +1502,28 @@ function applyPermissions(){
     clubSelect.style.display = "none";
   }
 
+  const studentSelect = document.getElementById("studentSelect");
+  if(currentRole==="student"){
+    rebuildStudentSelectOptions();
+    studentSelect.style.display = "block";
+  } else {
+    studentSelect.style.display = "none";
+  }
+
   document.getElementById("acctAvatar").textContent =
-    currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "St" : initials(currentClub);
+    currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "Ad" : initials(currentClub);
 
   const note=document.getElementById("clubOwnerNote");
   const manage = canManageClubPage();
   if(currentRole==="staff"){
     note.style.display="block";
-    note.innerHTML=`You're viewing as <b>Staff</b> — you can edit or delete any post, comment, story, or reel on ${currentViewedClub}'s page and view its report history.`;
+    note.innerHTML=`You're viewing as <b>Administrator</b> — you can edit or delete any post, comment, story, or reel on ${currentViewedClub}'s page, edit any member's profile, and grant or revoke account levels.`;
   } else if(currentRole==="business" && manage){
     note.style.display="block";
-    note.innerHTML=`You're viewing this page as the <b>${currentClub} Account</b> — you can drag posts to rearrange them, publish new posts/reels, and delete your own posts/stories/reels.`;
+    note.innerHTML=`You're viewing this page as the <b>${currentClub} Club Manager Account</b> — you can drag posts to rearrange them, publish new posts/reels, and delete your own posts/stories/reels.`;
   } else if(currentRole==="business"){
     note.style.display="block";
-    note.innerHTML=`You're viewing this page as <b>${currentClub} Account</b> — this page belongs to a different club (${currentViewedClub}), so you can view it but can't edit, post, or delete its content.`;
+    note.innerHTML=`You're viewing this page as <b>${currentClub} Club Manager Account</b> — this page belongs to a different club (${currentViewedClub}), so you can view it but can't edit, post, or delete its content.`;
   } else {
     note.style.display="none";
   }
@@ -1427,6 +1552,12 @@ document.getElementById("clubSelect").addEventListener("change",(e)=>{
   applyPermissions();
   renderFeed();
   toast(`Now managing as ${currentClub}`);
+});
+
+document.getElementById("studentSelect").addEventListener("change",(e)=>{
+  currentStudentMemberId = +e.target.value;
+  const found = findMemberById(currentStudentMemberId);
+  toast(found ? `Now logged in as ${found.member.name} (${found.club})` : "Now logged in as that student");
 });
 
 /* ---------------- HOME PAGE FILTERS ---------------- */
@@ -1600,10 +1731,11 @@ function openMemberProfile(club, idx){
   document.getElementById("mpClub").textContent = club;
 
   const pastRoles = m.pastRoles || [];
+  const levels = (m.accountLevels && m.accountLevels.length) ? m.accountLevels : ["Student Account"];
   document.getElementById("mpBody").innerHTML = `
     <div class="profile-row">
       <div class="pr-label">Account Level</div>
-      <div class="pr-value"><span class="profile-badge">${m.accountLevel || "Student Account"}</span></div>
+      <div class="pr-value">${levels.map(l=>`<span class="profile-badge" style="margin-right:6px;">${l}</span>`).join("")}</div>
     </div>
     <div class="profile-row">
       <div class="pr-label">Current Position</div>
@@ -1630,6 +1762,12 @@ function openMemberProfile(club, idx){
       <div class="pr-value">${m.bio || "—"}</div>
     </div>
   `;
+
+  const editBtn = document.getElementById("editProfileBtn");
+  const canEdit = canEditMemberProfile(club, idx);
+  editBtn.style.display = canEdit ? "inline-flex" : "none";
+  editBtn.onclick = ()=>{ closeMemberProfile(); openEditMemberModal(club, idx); };
+
   document.getElementById("memberProfileModal").classList.add("open");
 }
 function closeMemberProfile(){
@@ -1637,6 +1775,108 @@ function closeMemberProfile(){
 }
 document.getElementById("closeMemberProfileModal").addEventListener("click", closeMemberProfile);
 document.getElementById("memberProfileModal").addEventListener("click",(e)=>{ if(e.target.id==="memberProfileModal") closeMemberProfile(); });
+
+/* ---------------- EDIT MEMBER PROFILE (each account edits its own; Administrators edit any + grant/revoke levels) ---------------- */
+let editingMemberRef = null; // {club, idx}
+let editPastRolesDraft = [];
+
+function renderPastRolesEditList(list){
+  editPastRolesDraft = list;
+  const wrap = document.getElementById("editPastRolesList");
+  wrap.innerHTML = editPastRolesDraft.length ? editPastRolesDraft.map((r,i)=>`
+    <div class="member-edit-row" data-idx="${i}">
+      <div class="form-group"><input type="text" class="edit-past-role" placeholder="e.g. Treasurer (2024–2025)" value="${(r||"").replace(/"/g,"&quot;")}"></div>
+      <button type="button" class="btn-secondary remove-past-role-btn">✕</button>
+    </div>`).join("") : `<div class="form-hint">No past positions yet.</div>`;
+  wrap.querySelectorAll(".remove-past-role-btn").forEach(btn=>{
+    btn.addEventListener("click",(e)=>{
+      syncPastRolesFromDom();
+      const idx = +e.target.closest(".member-edit-row").dataset.idx;
+      editPastRolesDraft.splice(idx,1);
+      renderPastRolesEditList(editPastRolesDraft);
+    });
+  });
+}
+function syncPastRolesFromDom(){
+  const rows = document.querySelectorAll("#editPastRolesList .member-edit-row");
+  editPastRolesDraft = Array.from(rows).map(row=>row.querySelector(".edit-past-role").value);
+}
+
+function openEditMemberModal(club, idx){
+  const m = clubMembers[club] && clubMembers[club][idx];
+  if(!m) return;
+  if(!canEditMemberProfile(club, idx)){ toast("You don't have permission to edit this profile"); return; }
+
+  editingMemberRef = {club, idx};
+  document.getElementById("editMemberName").value = m.name;
+  document.getElementById("editMemberRole").value = m.role;
+  document.getElementById("editMemberContact").value = m.contact || "";
+  document.getElementById("editMemberGrade").value = m.grade || "";
+  document.getElementById("editMemberJoined").value = m.joined || "";
+  document.getElementById("editMemberBio").value = m.bio || "";
+  document.getElementById("err-membername").classList.remove("show");
+  renderPastRolesEditList((m.pastRoles||[]).slice());
+
+  const levelsWrap = document.getElementById("editMemberLevelsWrap");
+  if(canManageAccountLevels()){
+    levelsWrap.style.display = "block";
+    const levels = m.accountLevels || [];
+    document.getElementById("lvlStudent").checked = levels.includes("Student Account");
+    document.getElementById("lvlManager").checked = levels.includes("Club Manager Account");
+    document.getElementById("lvlAdmin").checked = levels.includes("Administrator Account");
+  } else {
+    levelsWrap.style.display = "none";
+  }
+
+  document.getElementById("editMemberModal").classList.add("open");
+}
+function closeEditMemberModal(){
+  document.getElementById("editMemberModal").classList.remove("open");
+}
+
+document.getElementById("closeEditMemberModal").addEventListener("click", closeEditMemberModal);
+document.getElementById("cancelEditMemberBtn").addEventListener("click", closeEditMemberModal);
+document.getElementById("editMemberModal").addEventListener("click",(e)=>{ if(e.target.id==="editMemberModal") closeEditMemberModal(); });
+document.getElementById("addPastRoleBtn").addEventListener("click", ()=>{
+  syncPastRolesFromDom();
+  editPastRolesDraft.push("");
+  renderPastRolesEditList(editPastRolesDraft);
+});
+
+document.getElementById("saveEditMemberBtn").addEventListener("click", ()=>{
+  if(!editingMemberRef) return;
+  const {club, idx} = editingMemberRef;
+  if(!canEditMemberProfile(club, idx)){ toast("You don't have permission to edit this profile"); closeEditMemberModal(); return; }
+
+  const m = clubMembers[club][idx];
+  const name = document.getElementById("editMemberName").value.trim();
+  const role = document.getElementById("editMemberRole").value.trim();
+  const nameErr = document.getElementById("err-membername");
+  if(!name || !role){ nameErr.classList.add("show"); return; }
+  nameErr.classList.remove("show");
+
+  syncPastRolesFromDom();
+  m.name = name;
+  m.role = role;
+  m.contact = document.getElementById("editMemberContact").value.trim();
+  m.grade = document.getElementById("editMemberGrade").value.trim();
+  m.joined = document.getElementById("editMemberJoined").value.trim();
+  m.bio = document.getElementById("editMemberBio").value.trim();
+  m.pastRoles = editPastRolesDraft.map(r=>r.trim()).filter(Boolean);
+
+  if(canManageAccountLevels()){
+    const levels = [];
+    if(document.getElementById("lvlStudent").checked) levels.push("Student Account");
+    if(document.getElementById("lvlManager").checked) levels.push("Club Manager Account");
+    if(document.getElementById("lvlAdmin").checked) levels.push("Administrator Account");
+    m.accountLevels = levels.length ? levels : ["Student Account"];
+  }
+
+  renderMembers();
+  closeEditMemberModal();
+  openMemberProfile(club, idx);
+  toast("Profile updated");
+});
 
 /* ---------------- EDIT CLUB PAGE (name / description / member introduction) ---------------- */
 let editMembersDraft = [];
@@ -1660,12 +1900,18 @@ function renderEditMembersList(list){
   });
 }
 
+// Merges the (name, role) text-field values back into the existing draft objects by position,
+// so profile fields like contact/grade/bio/pastRoles/accountLevels/id are never lost on save.
 function syncMemberDraftFromDom(){
   const rows = document.querySelectorAll("#editMembersList .member-edit-row");
-  editMembersDraft = Array.from(rows).map(row=>({
-    name: row.querySelector(".edit-member-name").value,
-    role: row.querySelector(".edit-member-role").value
-  }));
+  editMembersDraft = Array.from(rows).map((row,i)=>{
+    const base = editMembersDraft[i] || {};
+    return {
+      ...base,
+      name: row.querySelector(".edit-member-name").value,
+      role: row.querySelector(".edit-member-role").value
+    };
+  });
 }
 
 function openEditClubModal(){
@@ -1686,7 +1932,7 @@ document.getElementById("cancelEditClubBtn").addEventListener("click", closeEdit
 document.getElementById("editClubModal").addEventListener("click",(e)=>{ if(e.target.id==="editClubModal") closeEditClubModal(); });
 document.getElementById("addMemberRowBtn").addEventListener("click", ()=>{
   syncMemberDraftFromDom();
-  editMembersDraft.push({name:"", role:""});
+  editMembersDraft.push({name:"", role:"", id: nextId++, accountLevels:["Student Account"], contact:"", grade:"", joined:"", bio:"", pastRoles:[]});
   renderEditMembersList(editMembersDraft);
 });
 
@@ -1707,7 +1953,7 @@ document.getElementById("saveEditClubBtn").addEventListener("click", ()=>{
 
   syncMemberDraftFromDom();
   const newMembers = editMembersDraft
-    .map(m=>({name:m.name.trim(), role:m.role.trim()}))
+    .map(m=>({...m, name:m.name.trim(), role:m.role.trim()}))
     .filter(m=>m.name);
 
   const oldName = currentViewedClub;
