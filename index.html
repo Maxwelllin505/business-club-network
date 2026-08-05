@@ -862,6 +862,7 @@ function applyPermissions(){
   if(newPostBtn) newPostBtn.style.display = perms.editPage ? "flex" : "none";
 
   renderGrid(currentFilter);
+  renderStories();
 }
 
 document.getElementById("roleSelect").addEventListener("change",(e)=>{
