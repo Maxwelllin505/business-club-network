@@ -337,6 +337,24 @@
   .profile-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--navy);color:#fff;}
   .past-role-item{font-size:13px;color:var(--text);margin-bottom:2px;}
   .past-role-item::before{content:"• ";color:var(--muted);}
+
+  /* ---------- HELP CENTER (searchable) ---------- */
+  .help-modal-shell{max-width:480px;max-height:80vh;display:flex;flex-direction:column;}
+  .help-search{
+    display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);
+    border-radius:999px;padding:9px 16px;margin-bottom:14px;flex:0 0 auto;
+  }
+  .help-search input{border:none;background:transparent;outline:none;font-size:14px;width:100%;color:var(--text);}
+  #helpListView, #helpDetailView{overflow-y:auto;}
+  .help-topic-item{padding:12px 10px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;}
+  .help-topic-item:hover{background:var(--bg);}
+  .help-topic-item .ht-title{font-weight:700;font-size:14px;margin-bottom:2px;}
+  .help-topic-item .ht-summary{font-size:12px;color:var(--muted);}
+  .help-empty{padding:24px 0;text-align:center;color:var(--muted);font-size:13px;}
+  .help-detail-title{font-size:17px;font-weight:700;margin-bottom:12px;}
+  .help-detail-section{margin-bottom:14px;}
+  .help-detail-section .hd-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+  .help-detail-section .hd-value{font-size:14px;color:var(--text);line-height:1.6;}
 </style>
 </head>
 <body>
@@ -693,18 +711,20 @@
 </div>
 
 <div class="modal-backdrop" id="helpModal">
-  <div class="modal">
+  <div class="modal help-modal-shell">
     <button class="close" id="closeHelp">✕</button>
     <h3>Website Instructions</h3>
-    <ul>
-      <li><b>Search Bar</b> — find clubs, students, or posts across schools.</li>
-      <li><b>Filter system</b> — narrow the feed or a club page by school, topic, date, or post type.</li>
-      <li><b>Reels</b> — short-form video posts, swipe through the horizontal row.</li>
-      <li><b>Report system</b> — flag a post from its ⋮ menu; staff review all reports.</li>
-      <li><b>Account roles</b> — Public (view/like only), Student (like/comment/save/repost/share, edit own profile), Club Manager (also a Student account, plus edit own page and reply to comments), Administrator (edit any post, any profile, and grant/revoke account levels).</li>
-      <li><b>Stories</b> — time-limited posts on a club page that expire automatically after 24 hrs.</li>
-      <li><b>Posts Placement</b> — business club accounts can drag grid tiles to customize their page layout.</li>
-    </ul>
+    <div class="help-search">
+      <span>🔍</span>
+      <input type="text" id="helpSearchInput" placeholder="Search for a feature or system...">
+    </div>
+    <div id="helpListView">
+      <div id="helpTopicsList"></div>
+    </div>
+    <div id="helpDetailView" style="display:none;">
+      <button type="button" class="btn-secondary" id="helpBackBtn" style="margin-bottom:12px;">← Back to list</button>
+      <div id="helpDetailBody"></div>
+    </div>
   </div>
 </div>
 
@@ -1588,7 +1608,128 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
 });
 
 /* ---------------- HELP MODAL ---------------- */
-document.getElementById("helpBtn").addEventListener("click",()=>document.getElementById("helpModal").classList.add("open"));
+/* ---------------- HELP CENTER (searchable list -> click a system -> how to use / what it's for) ---------------- */
+const helpTopics = [
+  {id:1, title:"Search Bar", keywords:["search","find","lookup","magnifying glass"],
+    summary:"Find clubs, students, or posts across schools.",
+    purpose:"Quickly locate content anywhere on the network without browsing every page manually.",
+    usage:"Type into the search bar at the top of the Home Page. The feed filters live as you type, matching club names and post text."},
+  {id:2, title:"Clubs Directory", keywords:["clubs","directory","list of clubs","navigate","which clubs"],
+    summary:"Browse every club on the network and jump straight to their page.",
+    purpose:"Lets any visitor discover and explore other clubs' pages.",
+    usage:"On the Home Page, scroll to the Clubs section and click any club card to open its Individual Business Club Page."},
+  {id:3, title:"Home Page Filters", keywords:["filter","school","topic","time","following","for you","narrow feed"],
+    summary:"Narrow the Home feed and reels by school, topic, date, or following status.",
+    purpose:"Helps you focus on the content most relevant to you.",
+    usage:"Use the All Schools / All Topics / All Time dropdowns and the For You / Following toggle above the feed."},
+  {id:4, title:"Club Page Filters & Sort", keywords:["club filter","sort","newest","oldest","events achievements fundraisers"],
+    summary:"Filter a club's posts by type and sort them by date.",
+    purpose:"Makes a club's own post history easy to browse by category.",
+    usage:"On a club page, use the Events / Achievements / Fundraisers chips and the Newest / Oldest dropdown above the post grid."},
+  {id:5, title:"Reels", keywords:["reels","video","vertical video","watch"],
+    summary:"Short vertical video posts from any club.",
+    purpose:"A quick, scrollable way for clubs to share short clips.",
+    usage:"Click a reel thumbnail on the Home Page or a club page to open the vertical viewer with its comments alongside it."},
+  {id:6, title:"Adding & Deleting Reels", keywords:["add reel","delete reel","manage reels","new reel"],
+    summary:"Club Managers and Administrators can add or delete reels.",
+    purpose:"Lets a club keep its video highlights current.",
+    usage:"On your own club's page, click \"+ Add Reel\" to publish a new one, or the ✕ on a reel tile to delete it."},
+  {id:7, title:"Publishing a New Post", keywords:["new post","publish","upload","create post","add post"],
+    summary:"Publish a new post to your club page and the Home feed.",
+    purpose:"The main way clubs share updates, events, and achievements.",
+    usage:"On your club's own page, click \"+ New Post\", attach a photo or video, fill in the description, date, and responsible contact, then Publish."},
+  {id:8, title:"Post Detail / Zoom View", keywords:["zoom","expand post","full post","open post"],
+    summary:"Open any post to see it full-size along with its comments.",
+    purpose:"Gives a focused view of a single post and its discussion.",
+    usage:"Click anywhere on a post card, in the feed or a club's grid, to open the zoomed-in detail view."},
+  {id:9, title:"Comments", keywords:["comment","reply","discuss"],
+    summary:"Comment on posts and reels.",
+    purpose:"Lets members discuss posts and reels.",
+    usage:"Type into the comment box under a post or reel and click Post. Student, Club Manager, and Administrator accounts can comment; Public accounts can only view."},
+  {id:10, title:"Delete Controls", keywords:["delete","remove","x button","delete post","delete comment","delete story"],
+    summary:"Remove posts, comments, stories, or reels you're allowed to manage.",
+    purpose:"Keeps club pages accurate and lets moderators remove problem content.",
+    usage:"Click the ✕ on the item, or \"Delete\" in a post's ⋮ menu. Club Managers can only delete their own club's content; Administrators can delete anything."},
+  {id:11, title:"Report System", keywords:["report","flag","moderation"],
+    summary:"Flag a post for Administrator review.",
+    purpose:"Lets any member flag inappropriate content for staff to review.",
+    usage:"Open a post's ⋮ menu and choose \"Report post\"."},
+  {id:12, title:"Stories", keywords:["stories","24 hours","expire","disappear"],
+    summary:"Time-limited updates that disappear after 24 hours.",
+    purpose:"Good for short-lived announcements that don't need to stay on the page.",
+    usage:"View a club's Stories row on its page. Club Managers and Administrators can delete a story early with its ✕."},
+  {id:13, title:"Account Roles", keywords:["role","account type","public student club manager administrator","switch account"],
+    summary:"Switch between Public, Student, Club Manager, and Administrator accounts to preview each experience.",
+    purpose:"Lets you test what each type of account can see and do.",
+    usage:"Use the account dropdown in the top-right. A Student account also picks which student you're logged in as; a Club Manager account picks which club you manage."},
+  {id:14, title:"Editing a Club Page", keywords:["edit club","rename club","club description","club name"],
+    summary:"Change a club's name, description, and member roster.",
+    purpose:"Keeps a club's public page accurate as officers and details change.",
+    usage:"On your own club's page, click \"✏️ Edit Page\" near the banner."},
+  {id:15, title:"Member Profiles", keywords:["profile","member introduction","contact info","bio","position"],
+    summary:"View a member's account level, position, contact info, and bio.",
+    purpose:"Gives visitors a quick bio card for each club officer.",
+    usage:"Click any avatar in the Member Introduction row on a club page."},
+  {id:16, title:"Editing Your Own Profile", keywords:["edit profile","edit my profile","change my info","update profile"],
+    summary:"Update your own profile information.",
+    purpose:"Lets each person keep their own bio, contact info, and position current.",
+    usage:"Open your profile card and click \"Edit Profile\". You can only edit a profile that matches your logged-in account — your club's manager profile, or the specific student you're logged in as."},
+  {id:17, title:"Account Levels (Administrators)", keywords:["grant","revoke","promote","administrator","account level","give access"],
+    summary:"Administrators can grant or remove account levels on any member.",
+    purpose:"Lets staff promote a student to Club Manager, or grant Administrator access.",
+    usage:"As an Administrator, open a member's profile, click Edit Profile, and check or uncheck Student / Club Manager / Administrator under Account Levels."},
+  {id:18, title:"Drag-to-Reorder Grid", keywords:["drag","reorder","rearrange","grid layout","move posts"],
+    summary:"Rearrange a club's post grid by dragging tiles.",
+    purpose:"Lets a club highlight its most important posts first.",
+    usage:"On your own club's page, click and drag a post tile to a new spot in the grid."},
+];
+
+function renderHelpList(query){
+  const q = (query||"").toLowerCase().trim();
+  const list = helpTopics.filter(t=>{
+    if(!q) return true;
+    return t.title.toLowerCase().includes(q)
+      || t.summary.toLowerCase().includes(q)
+      || t.keywords.some(k=>k.toLowerCase().includes(q));
+  });
+  document.getElementById("helpTopicsList").innerHTML = list.length ? list.map(t=>`
+    <div class="help-topic-item" onclick="openHelpDetail(${t.id})">
+      <div class="ht-title">${t.title}</div>
+      <div class="ht-summary">${t.summary}</div>
+    </div>`).join("") : `<div class="help-empty">No matching features found. Try a different search term.</div>`;
+}
+
+function openHelpDetail(id){
+  const t = helpTopics.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById("helpDetailBody").innerHTML = `
+    <div class="help-detail-title">${t.title}</div>
+    <div class="help-detail-section">
+      <div class="hd-label">What it's for</div>
+      <div class="hd-value">${t.purpose}</div>
+    </div>
+    <div class="help-detail-section">
+      <div class="hd-label">How to use it</div>
+      <div class="hd-value">${t.usage}</div>
+    </div>
+  `;
+  document.getElementById("helpListView").style.display = "none";
+  document.getElementById("helpDetailView").style.display = "block";
+}
+
+function showHelpList(){
+  document.getElementById("helpDetailView").style.display = "none";
+  document.getElementById("helpListView").style.display = "block";
+}
+
+document.getElementById("helpBtn").addEventListener("click",()=>{
+  document.getElementById("helpSearchInput").value = "";
+  renderHelpList("");
+  showHelpList();
+  document.getElementById("helpModal").classList.add("open");
+});
+document.getElementById("helpSearchInput").addEventListener("input",(e)=>{ renderHelpList(e.target.value); });
+document.getElementById("helpBackBtn").addEventListener("click", showHelpList);
 document.getElementById("closeHelp").addEventListener("click",()=>document.getElementById("helpModal").classList.remove("open"));
 document.getElementById("helpModal").addEventListener("click",(e)=>{ if(e.target.id==="helpModal") e.target.classList.remove("open"); });
 
