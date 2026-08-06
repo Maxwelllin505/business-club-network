@@ -43,6 +43,32 @@
     background:transparent;border:none;outline:none;color:#fff;font-size:14px;width:100%;
   }
   .searchbar input::placeholder{color:rgba(255,255,255,.6);}
+  .search-wrap{position:relative;flex:1;max-width:520px;margin:0 auto;}
+  .search-wrap .searchbar{max-width:none;margin:0;}
+  .search-results{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;
+    background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);
+    max-height:320px;overflow-y:auto;z-index:50;display:none;
+  }
+  .search-results.open{display:block;}
+  .search-result-item{
+    display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;
+    border-bottom:1px solid var(--border);color:var(--text);
+  }
+  .search-result-item:last-child{border-bottom:none;}
+  .search-result-item:hover{background:var(--bg);}
+  .search-result-avatar{
+    width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:0 0 auto;
+  }
+  .search-result-info{flex:1;min-width:0;}
+  .search-result-name{font-size:13px;font-weight:600;}
+  .search-result-meta{font-size:11px;color:var(--muted);}
+  .search-results-empty{padding:14px;font-size:13px;color:var(--muted);text-align:center;}
+  .member-edit-block{border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;}
+  .member-edit-block:last-child{border-bottom:none;}
+  .edit-member-match-note{font-size:12px;color:var(--muted);margin-top:4px;}
+  .edit-member-match-note.found{color:#1a7a3a;font-weight:600;}
   .topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
   .icon-btn{
     background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
@@ -383,9 +409,12 @@
 
 <header class="topbar">
   <div class="brand"><span class="dot"></span> CCA Business Club Network</div>
-  <div class="searchbar">
-    <span>🔍</span>
-    <input id="searchInput" type="text" placeholder="Search clubs, students, posts...">
+  <div class="search-wrap">
+    <div class="searchbar">
+      <span>🔍</span>
+      <input id="searchInput" type="text" placeholder="Search clubs, students, posts..." autocomplete="off">
+    </div>
+    <div class="search-results" id="searchResults"></div>
   </div>
   <div class="topbar-right">
     <div class="identity-label" id="identityLabel" style="display:none;"></div>
@@ -896,6 +925,11 @@ const clubMembers = {
   ],
 };
 
+// Accounts created by open self-signup for an email that doesn't match any club roster yet.
+// They start in Public mode (accountLevels: [], club: null) until an Administrator either grants
+// account levels directly, or adds them into a club's Member Introduction (which removes them from here).
+const pendingAccounts = [];
+
 const clubStories = {
   "CCA Business Club": [
     {name:"Officer Meetup", expired:false},
@@ -953,6 +987,7 @@ async function hydrateFromServer(){
     if(s.clubGridPosts){ Object.keys(clubGridPosts).forEach(k=>delete clubGridPosts[k]); Object.assign(clubGridPosts, s.clubGridPosts); }
     if(s.clubReels){ Object.keys(clubReels).forEach(k=>delete clubReels[k]); Object.assign(clubReels, s.clubReels); }
     if(s.clubMeetingRecaps){ Object.keys(clubMeetingRecaps).forEach(k=>delete clubMeetingRecaps[k]); Object.assign(clubMeetingRecaps, s.clubMeetingRecaps); }
+    if(Array.isArray(s.pendingAccounts)){ pendingAccounts.length = 0; pendingAccounts.push(...s.pendingAccounts); }
     if(typeof s.nextId==="number") nextId = s.nextId;
     return true;
   }catch(e){
@@ -1009,6 +1044,16 @@ function applySeedDefaults(){
       r.summary = r.summary || "";
     });
   });
+  pendingAccounts.forEach(m=>{
+    if(m.id===undefined) m.id = nextId++;
+    m.accountLevels = m.accountLevels || [];
+    m.pastRoles = m.pastRoles || [];
+    m.role = m.role || "";
+    m.contact = m.contact || "";
+    m.grade = m.grade || "";
+    m.joined = m.joined || "";
+    m.bio = m.bio || "";
+  });
 }
 
 function getArr(name){ return name==="feed" ? feedPosts : clubGridPosts[currentViewedClub]; }
@@ -1023,6 +1068,21 @@ function findReelById(id){
 function findMemberById(id){
   for(const c of clubs){
     const idx = clubMembers[c].findIndex(x=>x.id===id);
+    if(idx>-1) return {member: clubMembers[c][idx], club: c, idx};
+  }
+  const pIdx = pendingAccounts.findIndex(x=>x.id===id);
+  if(pIdx>-1) return {member: pendingAccounts[pIdx], club: null, idx: pIdx};
+  return null;
+}
+// Case-insensitive email lookup across every club roster AND the pending-accounts pool, used to
+// auto-link an existing account instead of creating a duplicate. excludeId lets a row skip itself.
+function findAccountByEmailAnywhere(email, excludeId){
+  const target = (email||"").trim().toLowerCase();
+  if(!target) return null;
+  const pIdx = pendingAccounts.findIndex(x=>x.id!==excludeId && (x.contact||"").trim().toLowerCase()===target);
+  if(pIdx>-1) return {member: pendingAccounts[pIdx], club: null, idx: pIdx};
+  for(const c of clubs){
+    const idx = clubMembers[c].findIndex(x=>x.id!==excludeId && (x.contact||"").trim().toLowerCase()===target);
     if(idx>-1) return {member: clubMembers[c][idx], club: c, idx};
   }
   return null;
@@ -1064,9 +1124,10 @@ function canManageReel(reel){
 // Each account can edit its own profile: a student edits the specific member "they" are logged in as,
 // a Club Manager account edits its own club's manager profile, and Administrators can edit anyone's profile.
 function canEditMemberProfile(club, idx){
-  const m = clubMembers[club] && clubMembers[club][idx];
+  const m = club===null ? pendingAccounts[idx] : (clubMembers[club] && clubMembers[club][idx]);
   if(!m) return false;
   if(currentRole==="staff") return true;
+  if(club===null) return !!currentMember && m.id === currentMember.id; // a pending (Public) account can only edit itself — no club manager oversees it yet
   if(currentRole==="business") return club===currentClub && (m.accountLevels||[]).includes("Club Manager Account");
   if(currentRole==="student") return m.id === currentStudentMemberId;
   return false;
@@ -1941,7 +2002,7 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
 /* ---------------- HELP MODAL ---------------- */
 /* ---------------- RECORD STATUS / RESET TO DEFAULT (Administrator only, shared for every visitor) ---------------- */
 async function saveState(){
-  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, feedPosts, followedClubs, nextId };
+  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, followedClubs, nextId };
   try{
     const res = await fetch("/api/state", {
       method: "POST",
@@ -2045,9 +2106,9 @@ const helpTopics = [
     purpose:"Lets an Administrator lock in edits (posts, profiles, reels, club pages) so every visitor sees them after a reload — or undo everything back to the original demo data.",
     usage:"As an Administrator, use \"💾 Record Status\" in the top bar to save the current state for everyone, or \"↺ Reset Default\" to wipe it back to the original mock data."},
   {id:20, title:"Club Member Login", keywords:["login","log in","signup","sign up","passcode","password","account","public account mode","logout","log out"],
-    summary:"Real accounts tied to actual club members, not a role you pick from a dropdown.",
+    summary:"Real accounts tied to actual people — any email can sign up.",
     purpose:"Ties every post, edit, and profile to a real person instead of a simulated role, while still letting a visitor without an account browse as Public.",
-    usage:"Enter the email your club officer has on file for you. First time logging in, just choose a passcode and your account is set up automatically — no separate signup step. Your role (Student, Club Manager, or Administrator) comes from your account levels. Once logged in you stay logged in on this device until you click \"Log Out\". If you don't have an account or don't know your passcode, click \"Public Account Mode\" to browse as a visitor."},
+    usage:"Enter any email and choose a passcode — if it's your first time, an account is created automatically. If your email matches someone already on a club roster, you're logged into that profile; otherwise your new account starts in Public mode until an Administrator grants it account levels or adds it to a club's Member Introduction. Once logged in you stay logged in on this device until you click \"Log Out\". If you don't want to log in, click \"Public Account Mode\" to browse as a visitor."},
   {id:21, title:"Meeting Recaps", keywords:["meeting","recap","minutes","attendees","action items","summary"],
     summary:"A structured record of each club meeting — date, attendees, summary, and action items.",
     purpose:"Keeps a running history of what the club discussed and who owes what, instead of losing it in a group chat.",
@@ -2056,6 +2117,14 @@ const helpTopics = [
     summary:"A live countdown to each club's next big event, shown on its page and its home page card.",
     purpose:"Keeps everyone aware of how much time is left before the club's next major event (like a competition round).",
     usage:"Club Managers and Administrators set the event name and date from \"Edit Page\" on the club's own page. It shows as a badge (e.g. \"🗓 12 days until...\") until the date passes; leave the event name blank to hide it."},
+  {id:23, title:"Finding People (Search Bar)", keywords:["search","find","lookup","member search","pending account","public account"],
+    summary:"Typing a name or email in the top search bar shows matching people, not just posts.",
+    purpose:"Lets Administrators (and everyone else) quickly find a specific person's profile — including new Public-mode accounts that aren't on any club roster yet.",
+    usage:"Start typing a name or email in the top search bar. Any matching person appears in a dropdown below it — click a result to open that profile. This searches every club's roster plus accounts that signed up but haven't been added to a club yet."},
+  {id:24, title:"Promoting a Public Account", keywords:["promote","public account","pending account","new account","account level","add to club"],
+    summary:"New sign-ups start as Public — an Administrator decides what they can do next.",
+    purpose:"Keeps signup open to anyone while still requiring an Administrator to grant real access, instead of every new email automatically getting posting rights.",
+    usage:"Find the new account via the search bar and open their profile — an Administrator can check Student/Club Manager/Administrator boxes there to grant access club-wide. To attach them to a specific club's roster instead, go to that club's \"Edit Page\" → Member Introduction, add a row, and type their email — their existing account auto-links (no duplicate is created) and they're removed from the unassigned Public pool."},
 ];
 
 function renderHelpList(query){
@@ -2107,7 +2176,7 @@ document.getElementById("helpBackBtn").addEventListener("click", showHelpList);
 document.getElementById("closeHelp").addEventListener("click",()=>document.getElementById("helpModal").classList.remove("open"));
 document.getElementById("helpModal").addEventListener("click",(e)=>{ if(e.target.id==="helpModal") e.target.classList.remove("open"); });
 
-/* ---------------- SEARCH (demo) ---------------- */
+/* ---------------- SEARCH (feed filtering + people lookup by name/email) ---------------- */
 document.getElementById("searchInput").addEventListener("input",(e)=>{
   const q=e.target.value.toLowerCase();
   document.querySelectorAll("#feed .post").forEach(post=>{
@@ -2116,6 +2185,60 @@ document.getElementById("searchInput").addEventListener("input",(e)=>{
     const text=(p.club+" "+p.desc).toLowerCase();
     post.style.display = text.includes(q) ? "block" : "none";
   });
+  renderSearchResults(e.target.value);
+});
+
+function renderSearchResults(query){
+  const box = document.getElementById("searchResults");
+  const q = query.trim().toLowerCase();
+  if(!q){ box.classList.remove("open"); box.innerHTML = ""; return; }
+
+  const matches = [];
+  clubs.forEach(c=>{
+    clubMembers[c].forEach((m,idx)=>{
+      if((m.name||"").toLowerCase().includes(q) || (m.contact||"").toLowerCase().includes(q)){
+        matches.push({member:m, club:c, idx});
+      }
+    });
+  });
+  pendingAccounts.forEach((m,idx)=>{
+    if((m.name||"").toLowerCase().includes(q) || (m.contact||"").toLowerCase().includes(q)){
+      matches.push({member:m, club:null, idx});
+    }
+  });
+
+  if(!matches.length){
+    box.innerHTML = `<div class="search-results-empty">No people match "${query}"</div>`;
+    box.classList.add("open");
+    return;
+  }
+
+  box.innerHTML = matches.slice(0,8).map(({member,club,idx})=>`
+    <div class="search-result-item" data-club="${club===null ? "" : club.replace(/"/g,"&quot;")}" data-idx="${idx}" data-null="${club===null}">
+      <div class="search-result-avatar">${initials(member.name)}</div>
+      <div class="search-result-info">
+        <div class="search-result-name">${member.name}</div>
+        <div class="search-result-meta">${club===null ? "Public Account" : club}${member.contact ? " · "+member.contact : ""}</div>
+      </div>
+    </div>
+  `).join("");
+  box.classList.add("open");
+
+  box.querySelectorAll(".search-result-item").forEach(item=>{
+    item.addEventListener("click", ()=>{
+      const club = item.dataset.null === "true" ? null : item.dataset.club;
+      const idx = +item.dataset.idx;
+      openMemberProfile(club, idx);
+      box.classList.remove("open");
+      document.getElementById("searchInput").value = "";
+      document.getElementById("searchInput").blur();
+    });
+  });
+}
+
+document.addEventListener("click",(e)=>{
+  const wrap = document.querySelector(".search-wrap");
+  if(wrap && !wrap.contains(e.target)) document.getElementById("searchResults").classList.remove("open");
 });
 
 /* ---------------- NEW POST (mock upload) ---------------- */
@@ -2236,17 +2359,17 @@ document.getElementById("reelCommentInput").addEventListener("keydown",(e)=>{ if
 
 /* ---------------- MEMBER PROFILE (view account level, contact, current + past positions) ---------------- */
 function openMemberProfile(club, idx){
-  const list = clubMembers[club];
+  const list = club===null ? pendingAccounts : clubMembers[club];
   if(!list) return;
   const m = list[idx];
   if(!m) return;
 
   document.getElementById("mpAvatar").textContent = initials(m.name);
   document.getElementById("mpName").textContent = m.name;
-  document.getElementById("mpClub").textContent = club;
+  document.getElementById("mpClub").textContent = club===null ? "No club yet — Public Account" : club;
 
   const pastRoles = m.pastRoles || [];
-  const levels = (m.accountLevels && m.accountLevels.length) ? m.accountLevels : ["Student Account"];
+  const levels = (m.accountLevels && m.accountLevels.length) ? m.accountLevels : (club===null ? ["Public"] : ["Student Account"]);
   document.getElementById("mpBody").innerHTML = `
     <div class="profile-row">
       <div class="pr-label">Account Level</div>
@@ -2318,7 +2441,7 @@ function syncPastRolesFromDom(){
 }
 
 function openEditMemberModal(club, idx){
-  const m = clubMembers[club] && clubMembers[club][idx];
+  const m = club===null ? pendingAccounts[idx] : (clubMembers[club] && clubMembers[club][idx]);
   if(!m) return;
   if(!canEditMemberProfile(club, idx)){ toast("You don't have permission to edit this profile"); return; }
 
@@ -2363,11 +2486,11 @@ document.getElementById("saveEditMemberBtn").addEventListener("click", ()=>{
   const {club, idx} = editingMemberRef;
   if(!canEditMemberProfile(club, idx)){ toast("You don't have permission to edit this profile"); closeEditMemberModal(); return; }
 
-  const m = clubMembers[club][idx];
+  const m = club===null ? pendingAccounts[idx] : clubMembers[club][idx];
   const name = document.getElementById("editMemberName").value.trim();
   const role = document.getElementById("editMemberRole").value.trim();
   const nameErr = document.getElementById("err-membername");
-  if(!name || !role){ nameErr.classList.add("show"); return; }
+  if(!name || (club!==null && !role)){ nameErr.classList.add("show"); return; }
   nameErr.classList.remove("show");
 
   syncPastRolesFromDom();
@@ -2384,7 +2507,9 @@ document.getElementById("saveEditMemberBtn").addEventListener("click", ()=>{
     if(document.getElementById("lvlStudent").checked) levels.push("Student Account");
     if(document.getElementById("lvlManager").checked) levels.push("Club Manager Account");
     if(document.getElementById("lvlAdmin").checked) levels.push("Administrator Account");
-    m.accountLevels = levels.length ? levels : ["Student Account"];
+    // A club-roster member always keeps at least Student Account; a pending (club-less) account
+    // may legitimately have zero levels checked — that just means it stays in Public mode.
+    m.accountLevels = levels.length ? levels : (club===null ? [] : ["Student Account"]);
   }
 
   renderMembers();
@@ -2400,31 +2525,61 @@ function renderEditMembersList(list){
   editMembersDraft = list;
   const wrap = document.getElementById("editMembersList");
   wrap.innerHTML = editMembersDraft.length ? editMembersDraft.map((m,i)=>`
-    <div class="member-edit-row" data-idx="${i}">
-      <div class="form-group"><input type="text" class="edit-member-name" placeholder="Name" value="${(m.name||"").replace(/"/g,"&quot;")}"></div>
-      <div class="form-group"><input type="text" class="edit-member-role" placeholder="Role" value="${(m.role||"").replace(/"/g,"&quot;")}"></div>
-      <button type="button" class="btn-secondary remove-member-btn">✕</button>
+    <div class="member-edit-block" data-idx="${i}">
+      <div class="member-edit-row">
+        <div class="form-group"><input type="text" class="edit-member-name" placeholder="Name" value="${(m.name||"").replace(/"/g,"&quot;")}"></div>
+        <div class="form-group"><input type="text" class="edit-member-role" placeholder="Role" value="${(m.role||"").replace(/"/g,"&quot;")}"></div>
+        <button type="button" class="btn-secondary remove-member-btn">✕</button>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <input type="email" class="edit-member-email" placeholder="Email — type an existing account's email to link it instead of creating a duplicate" value="${(m.contact||"").replace(/"/g,"&quot;")}">
+        <div class="edit-member-match-note${m._linkFrom ? " found" : ""}" style="display:${m._linkFrom ? "block" : "none"};">${m._linkFrom ? "✓ Existing account found: "+m.name : ""}</div>
+      </div>
     </div>`).join("") : `<div class="form-hint">No members yet — add one below.</div>`;
   wrap.querySelectorAll(".remove-member-btn").forEach(btn=>{
     btn.addEventListener("click", (e)=>{
       syncMemberDraftFromDom();
-      const idx = +e.target.closest(".member-edit-row").dataset.idx;
+      const idx = +e.target.closest(".member-edit-block").dataset.idx;
       editMembersDraft.splice(idx,1);
       renderEditMembersList(editMembersDraft);
     });
   });
+  wrap.querySelectorAll(".edit-member-email").forEach(input=>{
+    input.addEventListener("focusout", (e)=>{
+      syncMemberDraftFromDom();
+      const idx = +e.target.closest(".member-edit-block").dataset.idx;
+      const draft = editMembersDraft[idx];
+      const note = e.target.closest(".member-edit-block").querySelector(".edit-member-match-note");
+      const email = e.target.value.trim();
+      if(!email){ delete draft._linkFrom; note.style.display = "none"; note.classList.remove("found"); return; }
+
+      const found = findAccountByEmailAnywhere(email, draft.id);
+      if(found){
+        // Auto-fill from the existing account so an Administrator/Club Manager doesn't have to
+        // retype it, and mark this draft row so saveEditClubBtn can relocate (not duplicate) it.
+        Object.assign(draft, { ...found.member, name: found.member.name, contact: found.member.contact });
+        draft._linkFrom = { club: found.club, idx: found.idx, id: found.member.id };
+        renderEditMembersList(editMembersDraft);
+      } else {
+        delete draft._linkFrom;
+        note.style.display = "none";
+        note.classList.remove("found");
+      }
+    });
+  });
 }
 
-// Merges the (name, role) text-field values back into the existing draft objects by position,
-// so profile fields like contact/grade/bio/pastRoles/accountLevels/id are never lost on save.
+// Merges the (name, role, email) text-field values back into the existing draft objects by position,
+// so profile fields like grade/bio/pastRoles/accountLevels/id are never lost on save.
 function syncMemberDraftFromDom(){
-  const rows = document.querySelectorAll("#editMembersList .member-edit-row");
+  const rows = document.querySelectorAll("#editMembersList .member-edit-block");
   editMembersDraft = Array.from(rows).map((row,i)=>{
     const base = editMembersDraft[i] || {};
     return {
       ...base,
       name: row.querySelector(".edit-member-name").value,
-      role: row.querySelector(".edit-member-role").value
+      role: row.querySelector(".edit-member-role").value,
+      contact: row.querySelector(".edit-member-email").value
     };
   });
 }
@@ -2470,11 +2625,30 @@ document.getElementById("saveEditClubBtn").addEventListener("click", ()=>{
   if(!valid) return;
 
   syncMemberDraftFromDom();
-  const newMembers = editMembersDraft
-    .map(m=>({...m, name:m.name.trim(), role:m.role.trim()}))
-    .filter(m=>m.name);
 
   const oldName = currentViewedClub;
+
+  // Any row linked to an existing account (via email match) must be removed from wherever it
+  // currently lives — a different club's roster, or the pending-accounts pool — before it's
+  // written into this club's roster below, so promoting/relocating never leaves a duplicate copy.
+  editMembersDraft.forEach(m=>{
+    if(!m._linkFrom) return;
+    const { club: fromClub, id: fromId } = m._linkFrom;
+    if(fromClub === null){
+      const pIdx = pendingAccounts.findIndex(x=>x.id===fromId);
+      if(pIdx>-1) pendingAccounts.splice(pIdx,1);
+    } else if(fromClub && fromClub !== oldName){
+      const arr = clubMembers[fromClub];
+      const fIdx = arr ? arr.findIndex(x=>x.id===fromId) : -1;
+      if(fIdx>-1) arr.splice(fIdx,1);
+    }
+    delete m._linkFrom;
+  });
+
+  const newMembers = editMembersDraft
+    .map(m=>({...m, name:m.name.trim(), role:m.role.trim(), contact:(m.contact||"").trim()}))
+    .filter(m=>m.name);
+
   clubMeta[oldName].tagline = newTagline;
   clubMeta[oldName].nextEvent = {
     name: document.getElementById("editEventName").value.trim(),
