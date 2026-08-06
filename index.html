@@ -1801,7 +1801,7 @@ function applyPermissions(){
   const logoutBtn = document.getElementById("logoutBtn");
   if(currentMember){
     identityLabel.style.display = "block";
-    identityLabel.innerHTML = `<b>${currentMember.name}</b><span>${currentMember.club} · ${roleLabel(currentRole)}</span>`;
+    identityLabel.innerHTML = `<b>${currentMember.name}</b><span>${currentMember.club || "No club yet"} · ${roleLabel(currentRole)}</span>`;
     loginBtn.style.display = "none";
     logoutBtn.style.display = "flex";
   } else {
