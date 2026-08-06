@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-build="20260806-1">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -268,6 +268,24 @@
     opacity:0;pointer-events:none;transition:opacity .25s;z-index:200;
   }
   .toast.show{opacity:1;}
+
+  /* A persistent "new version available" bar — unlike .toast, this never auto-hides. It stays until
+     the person actually reloads (at which point they get the new version and it naturally isn't shown
+     anymore). Pinned along the bottom edge so it never covers or blocks any page content. */
+  .reload-banner{
+    position:fixed;left:0;right:0;bottom:0;z-index:300;
+    display:none;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+    background:var(--gold);color:var(--navy);padding:10px 20px;
+    font-size:13px;font-weight:600;box-shadow:0 -2px 10px rgba(0,0,0,.15);
+    animation:reload-banner-in .25s ease-out;
+  }
+  .reload-banner.show{display:flex;}
+  .reload-banner button{
+    background:var(--navy);color:#fff;border:none;border-radius:999px;
+    padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .reload-banner button:hover{background:var(--navy2);}
+  @keyframes reload-banner-in{from{transform:translateY(100%);}to{transform:translateY(0);}}
 
   .role-note{
     background:#fff7e6;border:1px solid #f0d999;border-radius:10px;padding:8px 12px;font-size:12px;
@@ -879,6 +897,11 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="reload-banner" id="reloadBanner">
+  <span>🔄 This site has been updated — reload the page to get the latest version.</span>
+  <button type="button" id="reloadBannerBtn">Reload Now</button>
+</div>
+
 <script>
 /* ---------------- MOCK DATA (reflects the Business Club doc) ---------------- */
 const clubs = ["CCA Business Club","Lincoln HS Econ Society","Bayview Entrepreneurs"];
@@ -1070,6 +1093,34 @@ async function pollForUpdates(){
   }catch(e){ /* offline or backend hiccup — just try again next interval */ }
   isPollingState = false;
 }
+
+/* ---------------- NEW-VERSION NOTIFICATION ----------------
+   Data changes (a new post, a like, a comment) are picked up live by pollForUpdates() above and just
+   re-render in place — no reload needed. But when the SITE ITSELF has been updated (new HTML/JS pushed
+   live), a tab that's already open is still running the old code, and simply re-rendering can't fix
+   that — the browser needs an actual reload to pick up the new version. This checks for that case and,
+   if it happens, shows a persistent banner rather than silently reloading out from under someone. */
+const CURRENT_BUILD = document.documentElement.dataset.build;
+let reloadBannerShown = false;
+async function checkForNewVersion(){
+  if(reloadBannerShown) return; // already showing — nothing more to do until they reload
+  try{
+    const res = await fetch("/?_v=" + Date.now(), { cache: "no-store" });
+    if(!res.ok) return;
+    const html = await res.text();
+    const m = html.match(/data-build=["']([^"']+)["']/);
+    const liveBuild = m && m[1];
+    if(liveBuild && liveBuild !== CURRENT_BUILD) showReloadBanner();
+  }catch(e){ /* offline or backend hiccup — just try again next interval */ }
+}
+function showReloadBanner(){
+  reloadBannerShown = true;
+  document.getElementById("reloadBanner").classList.add("show");
+  // Deliberately no close/dismiss button and nothing here ever removes the "show" class — per the
+  // requirement, this stays up until the person actually reloads the page (which serves the new
+  // version and this code doesn't even run again with a stale build id).
+}
+document.getElementById("reloadBannerBtn").addEventListener("click", ()=> location.reload());
 
 /* ---------------- IDs + shared shape so posts/comments/stories/reels can be deleted and zoomed into ----------------
    Idempotent: if hydrateFromServer() already restored real ids/fields, nothing here overwrites them —
@@ -2404,6 +2455,10 @@ const helpTopics = [
     summary:"Follow a club or a person so their new posts surface at the top of your feed.",
     purpose:"Makes sure you don't miss updates from the clubs and people you care about most, without having to scroll to find them.",
     usage:"Click \"☆ Follow\" on a club's page, or open someone's profile and click \"☆ Follow\" there. Any of their posts you haven't opened yet get a \"🔔 New\" badge and move to the top of your Home feed until you open them. Requires being logged in — Public browsing doesn't save a personal follow list."},
+  {id:28, title:"\"Site Updated — Reload\" Banner", keywords:["reload","update","new version","banner","refresh"],
+    summary:"A bar at the bottom of the screen telling you the site itself has been updated.",
+    purpose:"New posts, likes, and comments already show up live without reloading — but when the website's underlying code changes, your open tab is still running the old version until you reload.",
+    usage:"If you see the gold bar at the bottom of the screen, click \"Reload Now\" (or just refresh the page) whenever it's convenient — it isn't blocking anything and stays up until you do. Everyone viewing the site gets this notice after an update goes live."},
 ];
 
 function renderHelpList(query){
@@ -3054,6 +3109,7 @@ async function initApp(){
     openAdminLoginModal(); // no valid session on this device — must log in (or sign up) or choose Public Account Mode
   }
   setInterval(pollForUpdates, 6000); // pick up posts/likes/comments from other accounts without a manual refresh
+  setInterval(checkForNewVersion, 60000); // notice when the site itself has been updated and needs a real reload
 }
 initApp();
 </script>
