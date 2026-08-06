@@ -1791,6 +1791,7 @@ function deleteReelComment(commentId){
   r.comments.splice(idx,1);
   renderReelDetail();
   toast("Comment deleted");
+  autoSave();
 }
 
 function deleteReelFromViewer(id){
@@ -1909,6 +1910,7 @@ function deleteComment(arrName, postId, commentId){
   renderGrid(currentFilter);
   if(currentDetail && currentDetail.id===postId) renderDetail();
   toast("Comment deleted");
+  autoSave();
 }
 
 /* ---------------- POST DETAIL (ZOOM) MODAL ---------------- */
