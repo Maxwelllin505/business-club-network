@@ -554,7 +554,7 @@
       <div class="form-group">
         <label>Link (optional)</label>
         <div style="display:flex;gap:8px;">
-          <input type="text" id="postLinkUrl" placeholder="https://..." style="flex:1;">
+          <input autocomplete="off" type="text" id="postLinkUrl" placeholder="https://..." style="flex:1;">
           <button type="button" class="btn-secondary" id="fetchLinkPreviewBtn">Preview</button>
         </div>
         <div class="form-hint">Attaching a link fetches a title/image preview that's shown as the post's picture.</div>
@@ -580,7 +580,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Date <span class="req">*</span></label>
-          <input type="date" id="postDate">
+          <input autocomplete="off" type="date" id="postDate">
         </div>
         <div class="form-group">
           <label>Post Type</label>
@@ -595,12 +595,12 @@
       <div class="form-row">
         <div class="form-group">
           <label>Responsible Person <span class="req">*</span></label>
-          <input type="text" id="postResponsible" placeholder="Full name">
+          <input autocomplete="off" type="text" id="postResponsible" placeholder="Full name">
           <div class="field-error" id="err-responsible">Responsible person is required.</div>
         </div>
         <div class="form-group">
           <label>Contact Info <span class="req">*</span></label>
-          <input type="text" id="postContact" placeholder="Email or phone">
+          <input autocomplete="off" type="text" id="postContact" placeholder="Email or phone">
           <div class="field-error" id="err-contact">Contact info is required.</div>
         </div>
       </div>
@@ -675,11 +675,11 @@
     <div class="form-row">
       <div class="form-group">
         <label>Name <span class="req">*</span></label>
-        <input type="text" id="editMemberName">
+        <input autocomplete="off" type="text" id="editMemberName">
       </div>
       <div class="form-group">
         <label>Current Position <span class="req">*</span></label>
-        <input type="text" id="editMemberRole">
+        <input autocomplete="off" type="text" id="editMemberRole">
       </div>
     </div>
     <div class="field-error" id="err-membername">Name and current position are required.</div>
@@ -687,16 +687,16 @@
     <div class="form-row">
       <div class="form-group">
         <label>Contact</label>
-        <input type="text" id="editMemberContact" placeholder="Email or phone">
+        <input autocomplete="off" type="text" id="editMemberContact" placeholder="Email or phone">
       </div>
       <div class="form-group">
         <label>Grade</label>
-        <input type="text" id="editMemberGrade" placeholder="e.g. Grade 11">
+        <input autocomplete="off" type="text" id="editMemberGrade" placeholder="e.g. Grade 11">
       </div>
     </div>
     <div class="form-group">
       <label>Joined</label>
-      <input type="text" id="editMemberJoined" placeholder="e.g. Fall 2024">
+      <input autocomplete="off" type="text" id="editMemberJoined" placeholder="e.g. Fall 2024">
     </div>
     <div class="form-group">
       <label>About</label>
@@ -736,7 +736,7 @@
     <h3>Edit Club Page</h3>
     <div class="form-group">
       <label>Club Name <span class="req">*</span></label>
-      <input type="text" id="editClubName">
+      <input autocomplete="off" type="text" id="editClubName">
       <div class="field-error" id="err-clubname">Please enter a club name.</div>
     </div>
     <div class="form-group">
@@ -747,11 +747,11 @@
     <div class="form-row">
       <div class="form-group">
         <label>Featured Event Name</label>
-        <input type="text" id="editEventName" placeholder="e.g. National Economics Challenge — Regional Round">
+        <input autocomplete="off" type="text" id="editEventName" placeholder="e.g. National Economics Challenge — Regional Round">
       </div>
       <div class="form-group">
         <label>Featured Event Date</label>
-        <input type="date" id="editEventDate">
+        <input autocomplete="off" type="date" id="editEventDate">
       </div>
     </div>
     <div class="form-hint" style="margin:-8px 0 12px;">Shown as a live countdown on this club's page and its home page card. Leave the name blank to hide it.</div>
@@ -773,7 +773,7 @@
     <h3>Add Reel</h3>
     <div class="form-group">
       <label>Reel Caption <span class="req">*</span></label>
-      <input type="text" id="reelLabelInput" placeholder="e.g. Behind the scenes at our bake sale">
+      <input autocomplete="off" type="text" id="reelLabelInput" placeholder="e.g. Behind the scenes at our bake sale">
       <div class="field-error" id="err-reel">Please enter a caption for the reel.</div>
     </div>
     <div class="form-actions">
@@ -789,12 +789,12 @@
     <h3>Add Meeting Recap</h3>
     <div class="form-group">
       <label>Meeting Date <span class="req">*</span></label>
-      <input type="date" id="recapDate">
+      <input autocomplete="off" type="date" id="recapDate">
       <div class="field-error" id="err-recapdate">Please pick a date.</div>
     </div>
     <div class="form-group">
       <label>Attendees</label>
-      <input type="text" id="recapAttendees" placeholder="Comma-separated names, e.g. Maxwell Lin, Michelle, Wilson Lin">
+      <input autocomplete="off" type="text" id="recapAttendees" placeholder="Comma-separated names, e.g. Maxwell Lin, Michelle, Wilson Lin">
     </div>
     <div class="form-group">
       <label>Summary <span class="req">*</span></label>
@@ -827,7 +827,7 @@
       <div class="post-actions" id="reelViewActions" style="padding:0 0 10px;flex-wrap:wrap;"></div>
       <div class="detail-comments" id="reelViewComments" style="flex:1;overflow-y:auto;"></div>
       <div class="row" style="margin-top:10px;">
-        <input placeholder="Add a comment..." id="reelCommentInput">
+        <input autocomplete="off" placeholder="Add a comment..." id="reelCommentInput">
         <button class="icon-btn" style="background:var(--navy);color:#fff;border:none;" id="reelCommentBtn">Post</button>
       </div>
     </div>
@@ -862,7 +862,7 @@
     <h3>Website Instructions</h3>
     <div class="help-search">
       <span>🔍</span>
-      <input type="text" id="helpSearchInput" placeholder="Search for a feature or system...">
+      <input autocomplete="off" type="text" id="helpSearchInput" placeholder="Search for a feature or system...">
     </div>
     <div id="helpListView">
       <div id="helpTopicsList"></div>
@@ -1000,6 +1000,25 @@ const clubGridPosts = {
    The page normally starts from the hardcoded seed data above. If an Administrator has ever clicked
    "Record Status", the live server (Vercel KV, via /api/state) holds a full snapshot instead — every
    visitor's browser hydrates from that snapshot on load instead of the hardcoded seed. */
+// Applies a raw state snapshot (from /api/state) onto the live in-memory arrays/dicts, in place —
+// shared by the initial page load (hydrateFromServer) and by the background poll that picks up
+// changes made by other accounts (pollForUpdates), so both stay perfectly consistent.
+function applyServerState(s){
+  if(Array.isArray(s.clubs)){ clubs.length = 0; clubs.push(...s.clubs); }
+  if(Array.isArray(s.feedPosts)){ feedPosts.length = 0; feedPosts.push(...s.feedPosts); }
+  // Note: followedClubs/followedPeople are intentionally NOT hydrated from the shared server state —
+  // they're personal, per-account data kept in this browser's localStorage (see loadFollowState()).
+  if(s.clubMeta){ Object.keys(clubMeta).forEach(k=>delete clubMeta[k]); Object.assign(clubMeta, s.clubMeta); }
+  if(s.clubMembers){ Object.keys(clubMembers).forEach(k=>delete clubMembers[k]); Object.assign(clubMembers, s.clubMembers); }
+  if(s.clubStories){ Object.keys(clubStories).forEach(k=>delete clubStories[k]); Object.assign(clubStories, s.clubStories); }
+  if(s.clubGridPosts){ Object.keys(clubGridPosts).forEach(k=>delete clubGridPosts[k]); Object.assign(clubGridPosts, s.clubGridPosts); }
+  if(s.clubReels){ Object.keys(clubReels).forEach(k=>delete clubReels[k]); Object.assign(clubReels, s.clubReels); }
+  if(s.clubMeetingRecaps){ Object.keys(clubMeetingRecaps).forEach(k=>delete clubMeetingRecaps[k]); Object.assign(clubMeetingRecaps, s.clubMeetingRecaps); }
+  if(Array.isArray(s.pendingAccounts)){ pendingAccounts.length = 0; pendingAccounts.push(...s.pendingAccounts); }
+  if(typeof s.nextId==="number") nextId = s.nextId;
+}
+
+let lastKnownStateSnapshot = null; // JSON string of the last state we applied — lets pollForUpdates() skip a re-render when nothing actually changed
 async function hydrateFromServer(){
   try{
     const res = await fetch("/api/state");
@@ -1007,24 +1026,46 @@ async function hydrateFromServer(){
     const data = await res.json();
     const s = data && data.state;
     if(!s) return false;
-
-    if(Array.isArray(s.clubs)){ clubs.length = 0; clubs.push(...s.clubs); }
-    if(Array.isArray(s.feedPosts)){ feedPosts.length = 0; feedPosts.push(...s.feedPosts); }
-    // Note: followedClubs/followedPeople are intentionally NOT hydrated from the shared server state —
-    // they're personal, per-account data kept in this browser's localStorage (see loadFollowState()).
-    if(s.clubMeta){ Object.keys(clubMeta).forEach(k=>delete clubMeta[k]); Object.assign(clubMeta, s.clubMeta); }
-    if(s.clubMembers){ Object.keys(clubMembers).forEach(k=>delete clubMembers[k]); Object.assign(clubMembers, s.clubMembers); }
-    if(s.clubStories){ Object.keys(clubStories).forEach(k=>delete clubStories[k]); Object.assign(clubStories, s.clubStories); }
-    if(s.clubGridPosts){ Object.keys(clubGridPosts).forEach(k=>delete clubGridPosts[k]); Object.assign(clubGridPosts, s.clubGridPosts); }
-    if(s.clubReels){ Object.keys(clubReels).forEach(k=>delete clubReels[k]); Object.assign(clubReels, s.clubReels); }
-    if(s.clubMeetingRecaps){ Object.keys(clubMeetingRecaps).forEach(k=>delete clubMeetingRecaps[k]); Object.assign(clubMeetingRecaps, s.clubMeetingRecaps); }
-    if(Array.isArray(s.pendingAccounts)){ pendingAccounts.length = 0; pendingAccounts.push(...s.pendingAccounts); }
-    if(typeof s.nextId==="number") nextId = s.nextId;
+    applyServerState(s);
+    lastKnownStateSnapshot = JSON.stringify(s);
     return true;
   }catch(e){
     console.warn("Could not load shared site state, falling back to defaults:", e);
     return false;
   }
+}
+
+// Background polling so changes another account makes (a new post, a like, a comment) show up here
+// without needing a manual page refresh. Skipped while you have a modal open, have an edit about to
+// autosave, or are actively typing — so it never yanks content out from under you mid-edit.
+let isPollingState = false;
+async function pollForUpdates(){
+  if(isPollingState || autoSaveTimer) return;
+  if(document.querySelector(".modal-backdrop.open")) return;
+  const active = document.activeElement;
+  if(active && (active.tagName==="INPUT" || active.tagName==="TEXTAREA")) return;
+  isPollingState = true;
+  try{
+    const res = await fetch("/api/state");
+    if(res.ok){
+      const data = await res.json();
+      const s = data && data.state;
+      if(s){
+        const snapshot = JSON.stringify(s);
+        if(snapshot !== lastKnownStateSnapshot){
+          lastKnownStateSnapshot = snapshot;
+          applyServerState(s);
+          applySeedDefaults();
+          renderClubsRow();
+          renderReels();
+          renderFeed();
+          renderClubPage();
+          applyPermissions();
+        }
+      }
+    }
+  }catch(e){ /* offline or backend hiccup — just try again next interval */ }
+  isPollingState = false;
 }
 
 /* ---------------- IDs + shared shape so posts/comments/stories/reels can be deleted and zoomed into ----------------
@@ -1035,6 +1076,7 @@ function applySeedDefaults(){
   feedPosts.forEach(p=>{
     if(p.id===undefined) p.id = nextId++;
     p.media = p.media || null;
+    p.likedBy = p.likedBy || [];
     (p.comments||[]).forEach(c=>{ if(c.id===undefined) c.id = nextId++; });
   });
   clubs.forEach(club=>{
@@ -1047,6 +1089,7 @@ function applySeedDefaults(){
       p.desc = p.desc || p.label;
       p.commentsOpen = p.commentsOpen !== undefined ? p.commentsOpen : true;
       p.likes = p.likes || 0;
+      p.likedBy = p.likedBy || [];
       p.comments = p.comments || [];
       p.media = p.media || null;
     });
@@ -1055,6 +1098,7 @@ function applySeedDefaults(){
       if(r.id===undefined) r.id = nextId++;
       r.club = club;
       r.likes = r.likes || 0;
+      r.likedBy = r.likedBy || [];
       r.comments = r.comments || [];
     });
     clubMembers[club].forEach(m=>{
@@ -1131,6 +1175,40 @@ let currentClub = null; // which club's Club Manager account is "logged in" (onl
 let currentViewedClub = null; // which club's Individual Business Club Page is currently on screen — set the same way
 let currentStudentMemberId = null; // which student member "you" are logged in as (only meaningful when currentRole === "student")
 let currentMember = null; // {id, name, email, club, accountLevels} for the real logged-in account, or null if Public
+
+/* ---------------- IDENTITY (who a comment/like should be attributed to) ---------------- */
+// The name to attach to a NEW comment written right now — must reflect the real author, not a
+// generic "You" placeholder, since every visitor sees this same text (comments are shared data).
+function currentIdentityName(){
+  if(currentRole==="business") return currentClub;
+  if(currentMember) return currentMember.name;
+  return "Public Visitor";
+}
+// A stable id for "who is clicking Like right now" so the same account/browser can't stack up
+// likes past one. Real accounts use their member id; a logged-out guest gets a random id that's
+// persisted in this browser's localStorage so it stays stable across page loads (but is NOT
+// shared site data — it never rides along in saveState()/autoSave()).
+function getLikerId(){
+  if(currentMember) return "m" + currentMember.id;
+  try{
+    let gid = localStorage.getItem("ccaGuestLikerId");
+    if(!gid){ gid = "g" + Date.now().toString(36) + Math.random().toString(36).slice(2); localStorage.setItem("ccaGuestLikerId", gid); }
+    return gid;
+  }catch(e){ return "guest"; }
+}
+function hasLiked(entity){ return Array.isArray(entity.likedBy) && entity.likedBy.includes(getLikerId()); }
+// Toggles the current viewer's like on a post/reel, keeping `likes` (the shared count) and
+// `likedBy` (who has already liked it) in sync so nobody can like the same thing twice — including
+// by re-clicking after a Record Status/refresh, which used to let the count get spammed upward.
+function applyLikeToggle(entity){
+  if(!Array.isArray(entity.likedBy)) entity.likedBy = [];
+  const id = getLikerId();
+  const idx = entity.likedBy.indexOf(id);
+  if(idx > -1){ entity.likedBy.splice(idx, 1); entity.likes = Math.max(0, (entity.likes||0) - 1); return false; }
+  entity.likedBy.push(id);
+  entity.likes = (entity.likes||0) + 1;
+  return true;
+}
 
 /* ---------------- FOLLOWING (personal — stored per-account in this browser, never shared site data) ----------------
    Each logged-in account has its own follow list (clubs + people) and its own "have I opened this
@@ -1384,7 +1462,7 @@ function renderFeed(){
       <div class="post-media">${p.link ? linkCardHtml(p.link) : (p.media ? `<img src="${p.media}" style="width:100%;height:100%;object-fit:cover;">` : "📷 Photo / Video attached")}</div>
       <div class="post-body"><div class="post-desc">${p.desc}</div></div>
       <div class="post-actions" onclick="event.stopPropagation()">
-        <button onclick="toggleLike(this,${p.id})">❤️ <span class="likecount">${p.likes}</span></button>
+        <button onclick="toggleLike(this,${p.id})" class="${hasLiked(p)?'liked':''}">❤️ <span class="likecount">${p.likes}</span></button>
         <button onclick="toggleComments(${p.id})">💬 ${p.comments.length} Comment${p.comments.length!==1?'s':''}</button>
         <button onclick="toast('Saved')">🔖 Save</button>
         <button onclick="toast('Shared')">↗ Share</button>
@@ -1392,7 +1470,7 @@ function renderFeed(){
       <div class="comments" id="comments-${p.id}" onclick="event.stopPropagation()">
         ${feedCommentsHtml('feed', p)}
         <div class="row">
-          <input placeholder="Add a comment..." id="commentInput-${p.id}">
+          <input autocomplete="off" placeholder="Add a comment..." id="commentInput-${p.id}">
           <button class="icon-btn" style="background:var(--navy);color:#fff;border:none;" onclick="addComment(${p.id})">Post</button>
         </div>
       </div>
@@ -1413,9 +1491,12 @@ function toggleLike(btn,id){
   const perms=rolePerms[currentRole];
   if(!perms.like) return;
   const p=findById(feedPosts,id);
-  const span=btn.querySelector(".likecount");
-  const liked=btn.classList.toggle("liked");
-  span.textContent = liked ? p.likes+1 : p.likes;
+  if(!p) return;
+  const liked = applyLikeToggle(p);
+  btn.classList.toggle("liked", liked);
+  btn.querySelector(".likecount").textContent = p.likes;
+  if(currentViewedClub===p.club) renderGrid(currentFilter); // keep the club page's grid tile in sync too
+  autoSave();
 }
 
 function toggleComments(id){
@@ -1428,9 +1509,10 @@ function addComment(id){
   if(!perms.comment){ toast("Only Student, Club Manager, or Administrator accounts can comment"); return; }
   if(!input.value.trim()) return;
   const p=findById(feedPosts,id);
-  p.comments.push({id: nextId++, name: currentRole==="business" ? currentClub : "You", text:input.value.trim()});
+  p.comments.push({id: nextId++, name: currentIdentityName(), text:input.value.trim()});
   renderFeed();
   document.getElementById(`comments-${id}`).classList.add("open");
+  autoSave();
 }
 
 /* ---------------- RENDER: CLUB PAGE ---------------- */
@@ -1664,7 +1746,7 @@ function renderReelDetail(){
   document.getElementById("reelViewCaption").textContent = r.label;
 
   document.getElementById("reelViewActions").innerHTML = `
-    <button onclick="toggleReelLike(this)">❤️ <span id="reelLikeCount">${r.likes}</span></button>
+    <button onclick="toggleReelLike(this)" class="${hasLiked(r)?'liked':''}">❤️ <span id="reelLikeCount">${r.likes}</span></button>
     <button onclick="toast('${(r.comments||[]).length} comment${(r.comments||[]).length!==1?'s':''} on the left')">💬 ${(r.comments||[]).length} Comment${(r.comments||[]).length!==1?'s':''}</button>
     ${canManageReel(r) ? `<button onclick="deleteReelFromViewer(${r.id})" style="color:var(--danger);">🗑 Delete Reel</button>` : ""}
   `;
@@ -1682,9 +1764,10 @@ function toggleReelLike(btn){
   if(!perms.like) return;
   const r = findReelById(currentReelId);
   if(!r) return;
-  const liked = btn.classList.toggle("liked");
-  r.likes = liked ? r.likes+1 : Math.max(0, r.likes-1);
+  const liked = applyLikeToggle(r);
+  btn.classList.toggle("liked", liked);
   document.getElementById("reelLikeCount").textContent = r.likes;
+  autoSave();
 }
 
 function addReelComment(){
@@ -1694,9 +1777,10 @@ function addReelComment(){
   if(!input.value.trim()) return;
   const r = findReelById(currentReelId);
   if(!r) return;
-  r.comments.push({id: nextId++, name: currentRole==="business" ? currentClub : "You", text: input.value.trim()});
+  r.comments.push({id: nextId++, name: currentIdentityName(), text: input.value.trim()});
   input.value = "";
   renderReelDetail();
+  autoSave();
 }
 
 function deleteReelComment(commentId){
@@ -1863,7 +1947,7 @@ function renderDetail(){
   document.getElementById("detailDesc").textContent = p.desc || p.label || "";
 
   document.getElementById("detailActions").innerHTML = `
-    <button onclick="toggleLikeDetail(this)">❤️ <span id="detailLikeCount">${p.likes}</span></button>
+    <button onclick="toggleLikeDetail(this)" class="${hasLiked(p)?'liked':''}">❤️ <span id="detailLikeCount">${p.likes}</span></button>
     <button onclick="toast('${p.comments.length} comment${p.comments.length!==1?'s':''} below')">💬 ${p.comments.length} Comment${p.comments.length!==1?'s':''}</button>
     <button onclick="toast('Saved')">🔖 Save</button>
     <button onclick="toast('Shared')">↗ Share</button>
@@ -1873,7 +1957,7 @@ function renderDetail(){
   document.getElementById("detailComments").innerHTML = `
     ${feedCommentsHtml(currentDetail.arrName, p)}
     <div class="row" style="margin-top:10px;">
-      <input placeholder="Add a comment..." id="detailCommentInput">
+      <input autocomplete="off" placeholder="Add a comment..." id="detailCommentInput">
       <button class="icon-btn" style="background:var(--navy);color:#fff;border:none;" onclick="addDetailComment()">Post</button>
     </div>
   `;
@@ -1884,11 +1968,13 @@ function toggleLikeDetail(btn){
   if(!perms.like) return;
   const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
-  const liked = btn.classList.toggle("liked");
-  p.likes = liked ? p.likes+1 : Math.max(0, p.likes-1);
+  if(!p) return;
+  const liked = applyLikeToggle(p);
+  btn.classList.toggle("liked", liked);
   document.getElementById("detailLikeCount").textContent = p.likes;
   renderFeed();
   renderGrid(currentFilter);
+  autoSave();
 }
 
 function addDetailComment(){
@@ -1898,10 +1984,11 @@ function addDetailComment(){
   if(!input.value.trim()) return;
   const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
-  p.comments.push({id: nextId++, name: currentRole==='business' ? currentClub : "You", text: input.value.trim()});
+  p.comments.push({id: nextId++, name: currentIdentityName(), text: input.value.trim()});
   renderDetail();
   renderFeed();
   renderGrid(currentFilter);
+  autoSave();
 }
 
 document.getElementById("closeDetailModal").addEventListener("click", closeDetailModal);
@@ -2102,6 +2189,10 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById("page-home").style.display = btn.dataset.page==="home" ? "block":"none";
     document.getElementById("page-club").style.display = btn.dataset.page==="club" ? "block":"none";
+    // Re-render whichever page you're switching to — otherwise it can still be showing whatever
+    // it looked like the last time it was rendered, missing likes/comments/posts made since then.
+    if(btn.dataset.page==="home"){ renderClubsRow(); renderReels(); renderFeed(); }
+    else { renderClubPage(); }
   });
 });
 
@@ -2637,7 +2728,7 @@ function renderPastRolesEditList(list){
   const wrap = document.getElementById("editPastRolesList");
   wrap.innerHTML = editPastRolesDraft.length ? editPastRolesDraft.map((r,i)=>`
     <div class="member-edit-row" data-idx="${i}">
-      <div class="form-group"><input type="text" class="edit-past-role" placeholder="e.g. Treasurer (2024–2025)" value="${(r||"").replace(/"/g,"&quot;")}"></div>
+      <div class="form-group"><input autocomplete="off" type="text" class="edit-past-role" placeholder="e.g. Treasurer (2024–2025)" value="${(r||"").replace(/"/g,"&quot;")}"></div>
       <button type="button" class="btn-secondary remove-past-role-btn">✕</button>
     </div>`).join("") : `<div class="form-hint">No past positions yet.</div>`;
   wrap.querySelectorAll(".remove-past-role-btn").forEach(btn=>{
@@ -2742,12 +2833,12 @@ function renderEditMembersList(list){
   wrap.innerHTML = editMembersDraft.length ? editMembersDraft.map((m,i)=>`
     <div class="member-edit-block" data-idx="${i}">
       <div class="member-edit-row">
-        <div class="form-group"><input type="text" class="edit-member-name" placeholder="Name" value="${(m.name||"").replace(/"/g,"&quot;")}"></div>
-        <div class="form-group"><input type="text" class="edit-member-role" placeholder="Role" value="${(m.role||"").replace(/"/g,"&quot;")}"></div>
+        <div class="form-group"><input autocomplete="off" type="text" class="edit-member-name" placeholder="Name" value="${(m.name||"").replace(/"/g,"&quot;")}"></div>
+        <div class="form-group"><input autocomplete="off" type="text" class="edit-member-role" placeholder="Role" value="${(m.role||"").replace(/"/g,"&quot;")}"></div>
         <button type="button" class="btn-secondary remove-member-btn">✕</button>
       </div>
       <div class="form-group" style="margin-bottom:0;">
-        <input type="email" class="edit-member-email" placeholder="Email — type an existing account's email to link it instead of creating a duplicate" value="${(m.contact||"").replace(/"/g,"&quot;")}">
+        <input autocomplete="off" type="email" class="edit-member-email" placeholder="Email — type an existing account's email to link it instead of creating a duplicate" value="${(m.contact||"").replace(/"/g,"&quot;")}">
         <div class="edit-member-match-note${m._linkFrom ? " found" : ""}" style="display:${m._linkFrom ? "block" : "none"};">${m._linkFrom ? "✓ Existing account found: "+m.name : ""}</div>
       </div>
     </div>`).join("") : `<div class="form-hint">No members yet — add one below.</div>`;
@@ -2900,6 +2991,7 @@ async function initApp(){
   } else {
     openAdminLoginModal(); // no valid session on this device — must log in (or sign up) or choose Public Account Mode
   }
+  setInterval(pollForUpdates, 6000); // pick up posts/likes/comments from other accounts without a manual refresh
 }
 initApp();
 </script>
