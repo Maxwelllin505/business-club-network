@@ -603,15 +603,10 @@
 <div class="modal-backdrop" id="adminLoginModal">
   <div class="modal" style="max-width:380px;">
     <h3 style="margin-bottom:4px;">Club Member Login</h3>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">Enter the email your club officer has on file for you. First time logging in? Just pick a passcode and we'll set up your account.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">Enter your email to log in. If it's your first time, an account is created automatically — no password needed. Each email can only ever back one account.</p>
     <div class="form-group">
       <label>Email</label>
       <input type="text" id="loginEmail" placeholder="you@school.edu" autocomplete="off">
-    </div>
-    <div class="form-group">
-      <label>Passcode</label>
-      <input type="password" id="loginPasscode" placeholder="Choose or enter your passcode" autocomplete="off">
-      <div class="field-error" id="err-loginpasscode">Incorrect passcode. Try again.</div>
     </div>
     <div class="form-hint" id="loginStatusMsg" style="min-height:16px;"></div>
     <div class="form-actions" style="justify-content:space-between;">
@@ -1873,8 +1868,6 @@ function logOutLocally(){
 
 function openAdminLoginModal(){ // login gate modal (name kept for backward compatibility with earlier code)
   document.getElementById("loginEmail").value = "";
-  document.getElementById("loginPasscode").value = "";
-  document.getElementById("err-loginpasscode").classList.remove("show");
   document.getElementById("loginStatusMsg").textContent = "";
   document.getElementById("adminLoginModal").classList.add("open");
   document.getElementById("loginEmail").focus();
@@ -1885,19 +1878,16 @@ function closeAdminLoginModal(){
 
 async function submitLogin(){
   const email = document.getElementById("loginEmail").value.trim();
-  const passcode = document.getElementById("loginPasscode").value;
-  const err = document.getElementById("err-loginpasscode");
   const statusMsg = document.getElementById("loginStatusMsg");
-  err.classList.remove("show");
-  if(!email || !passcode){
-    statusMsg.textContent = "Enter both your email and a passcode.";
+  if(!email){
+    statusMsg.textContent = "Enter your email to continue.";
     return;
   }
   statusMsg.textContent = "Checking...";
   try{
     const res = await fetch("/api/auth", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({action:"login", email, passcode})
+      body: JSON.stringify({action:"login", email})
     });
     const data = await res.json();
     if(data.ok){
@@ -1906,36 +1896,16 @@ async function submitLogin(){
       closeAdminLoginModal();
       applyPermissions();
       renderFeed();
-      toast(`Logged in as ${data.member.name}`);
+      toast(data.isNew ? `Account set up — welcome, ${data.member.name}!` : `Logged in as ${data.member.name}`);
       return;
     }
-    if(data.reason==="no-account"){
-      // First-time login for this email: sign up with the passcode they just entered.
-      const signupRes = await fetch("/api/auth", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({action:"signup", email, passcode})
-      });
-      const signupData = await signupRes.json();
-      if(signupData.ok){
-        localStorage.setItem(SESSION_KEY, signupData.token);
-        applyMemberIdentity(signupData.member);
-        closeAdminLoginModal();
-        applyPermissions();
-        renderFeed();
-        toast(`Account set up — welcome, ${signupData.member.name}!`);
-      } else {
-        statusMsg.textContent = signupData.error || "We couldn't find that email in the club roster. Ask your club officer to add you as a member first.";
-      }
-      return;
-    }
-    err.classList.add("show");
-    statusMsg.textContent = "";
+    statusMsg.textContent = data.error || "Something went wrong. Try again in a moment.";
   }catch(e){
     statusMsg.textContent = "Couldn't reach the login server. Try again in a moment.";
   }
 }
 document.getElementById("loginSubmitBtn").addEventListener("click", submitLogin);
-document.getElementById("loginPasscode").addEventListener("keydown",(e)=>{
+document.getElementById("loginEmail").addEventListener("keydown",(e)=>{
   if(e.key==="Enter") submitLogin();
 });
 document.getElementById("publicModeBtn").addEventListener("click", ()=>{
@@ -2080,7 +2050,7 @@ const helpTopics = [
   {id:13, title:"Account Roles", keywords:["role","account type","public student club manager administrator","switch account"],
     summary:"Your role (Public, Student, Club Manager, or Administrator) is determined automatically by your real account.",
     purpose:"Every member's account levels decide what they can see and do — nobody manually picks a role anymore.",
-    usage:"Log in with your email and passcode. Your account's levels (set on your member profile) decide your role: Administrator if you have that level, otherwise Club Manager, otherwise Student. See \"Club Member Login\" for how to log in."},
+    usage:"Log in with just your email. Your account's levels (set on your member profile) decide your role: Administrator if you have that level, otherwise Club Manager, otherwise Student. See \"Club Member Login\" for how to log in."},
   {id:14, title:"Editing a Club Page", keywords:["edit club","rename club","club description","club name"],
     summary:"Change a club's name, description, and member roster.",
     purpose:"Keeps a club's public page accurate as officers and details change.",
@@ -2105,10 +2075,10 @@ const helpTopics = [
     summary:"Save the current live state as the shared default, or reset it back to the original.",
     purpose:"Lets an Administrator lock in edits (posts, profiles, reels, club pages) so every visitor sees them after a reload — or undo everything back to the original demo data.",
     usage:"As an Administrator, use \"💾 Record Status\" in the top bar to save the current state for everyone, or \"↺ Reset Default\" to wipe it back to the original mock data."},
-  {id:20, title:"Club Member Login", keywords:["login","log in","signup","sign up","passcode","password","account","public account mode","logout","log out"],
-    summary:"Real accounts tied to actual people — any email can sign up.",
+  {id:20, title:"Club Member Login", keywords:["login","log in","signup","sign up","account","public account mode","logout","log out","email"],
+    summary:"Real accounts tied to actual people — no password, just an email.",
     purpose:"Ties every post, edit, and profile to a real person instead of a simulated role, while still letting a visitor without an account browse as Public.",
-    usage:"Enter any email and choose a passcode — if it's your first time, an account is created automatically. If your email matches someone already on a club roster, you're logged into that profile; otherwise your new account starts in Public mode until an Administrator grants it account levels or adds it to a club's Member Introduction. Once logged in you stay logged in on this device until you click \"Log Out\". If you don't want to log in, click \"Public Account Mode\" to browse as a visitor."},
+    usage:"Enter your email and click Log In — no password needed. If it's your first time, an account is created automatically. If your email matches someone already on a club roster, you're logged into that profile; otherwise your new account starts in Public mode until an Administrator grants it account levels or adds it to a club's Member Introduction. Each email can only ever back one account. Once logged in you stay logged in on this device until you click \"Log Out\". If you don't want to log in, click \"Public Account Mode\" to browse as a visitor."},
   {id:21, title:"Meeting Recaps", keywords:["meeting","recap","minutes","attendees","action items","summary"],
     summary:"A structured record of each club meeting — date, attendees, summary, and action items.",
     purpose:"Keeps a running history of what the club discussed and who owes what, instead of losing it in a group chat.",
