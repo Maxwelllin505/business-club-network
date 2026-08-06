@@ -76,6 +76,7 @@
     display:flex;align-items:center;gap:6px;
   }
   .icon-btn:hover{background:rgba(255,255,255,.2);}
+  .icon-btn.following{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:700;}
   .role-select{
     background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);
     border-radius:8px;padding:7px 8px;font-size:12px;
@@ -150,6 +151,7 @@
   .post-head .meta{flex:1;min-width:0;}
   .post-head .clubname{font-weight:700;font-size:14px;display:flex;align-items:center;gap:5px;}
   .check{color:#2e9e5b;font-size:12px;}
+  .new-badge{background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;white-space:nowrap;}
   .post-head .subline{font-size:12px;color:var(--muted);}
   .menu-wrap{position:relative;}
   .menu-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:4px 8px;}
@@ -167,6 +169,14 @@
     height:220px;background:linear-gradient(135deg,#dfe6f2,#c9d4ea);
     display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;
   }
+  .link-card{height:100%;width:100%;display:flex;flex-direction:column;cursor:pointer;background:#eef1f7;}
+  .link-card .link-card-img{flex:1;min-height:0;background-size:cover;background-position:center;background-color:#dfe6f2;}
+  .link-card .link-card-body{padding:10px 14px;background:#fff;}
+  .link-card .link-card-domain{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px;}
+  .link-card .link-card-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .grid-block .link-card-badge{position:absolute;top:6px;right:6px;background:rgba(18,33,59,.75);color:#fff;
+    font-size:10px;padding:2px 6px;border-radius:6px;}
   .post-body{padding:12px 14px;}
   .post-desc{font-size:14px;margin-bottom:8px;}
   .post-actions{display:flex;gap:16px;padding:0 14px 12px;font-size:13px;color:var(--muted);}
@@ -306,6 +316,7 @@
     background:var(--bg);border:1px solid var(--border);color:var(--text);
     border-radius:999px;padding:9px 16px;font-size:13px;cursor:pointer;
   }
+  .btn-secondary.following{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:700;}
   .btn-primary{
     background:var(--navy);border:none;color:#fff;
     border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;
@@ -424,7 +435,7 @@
     <button class="icon-btn" id="recordStatusBtn" style="display:none;" title="Save the current state as the live default for every visitor">💾 Record Status</button>
     <button class="icon-btn" id="resetDefaultBtn" style="display:none;" title="Reset the live site back to its original defaults for every visitor">↺ Reset Default</button>
     <button class="icon-btn" id="helpBtn">❓ Help</button>
-    <div class="avatar" id="acctAvatar">P</div>
+    <div class="avatar" id="acctAvatar" title="Your account" style="cursor:pointer;">P</div>
   </div>
 </header>
 
@@ -482,7 +493,10 @@
           <p id="clubPageTagline">California Crosspoint Academy · National Economics Challenge 2026</p>
           <div class="event-countdown" id="clubEventCountdown" style="display:none;"></div>
         </div>
-        <button class="icon-btn" id="editClubBtn" style="position:absolute;top:12px;right:12px;display:none;">✏️ Edit Page</button>
+        <div style="position:absolute;top:12px;right:12px;display:flex;gap:8px;">
+          <button class="icon-btn" id="followClubBtn">☆ Follow</button>
+          <button class="icon-btn" id="editClubBtn" style="display:none;">✏️ Edit Page</button>
+        </div>
       </div>
       <div class="section-label" style="padding:12px 18px 0;">Member Introduction</div>
       <div class="members-row" id="membersRow"></div>
@@ -527,16 +541,35 @@
   <div class="modal wide">
     <button class="close" id="closePostModal">✕</button>
     <h3>New Post</h3>
-    <div class="form-hint" style="margin:-8px 0 16px;">Every post needs media, a description, a date, and a responsible contact — matching the club's posting rules.</div>
+    <div class="form-hint" style="margin:-8px 0 16px;">Every post needs a photo/video or a link preview, a description, a date, and a responsible contact — matching the club's posting rules.</div>
     <form id="newPostForm">
       <div class="form-group">
-        <label>Photo / Video <span class="req">*</span></label>
+        <label>Photo / Video</label>
         <div class="dropzone" id="dropzone">
           <span id="dropzoneLabel">Click or drag a file here to attach</span>
           <input type="file" id="postMedia" accept="image/*,video/*">
         </div>
-        <div class="field-error" id="err-media">Please attach at least one photo or video.</div>
       </div>
+
+      <div class="form-group">
+        <label>Link (optional)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="postLinkUrl" placeholder="https://..." style="flex:1;">
+          <button type="button" class="btn-secondary" id="fetchLinkPreviewBtn">Preview</button>
+        </div>
+        <div class="form-hint">Attaching a link fetches a title/image preview that's shown as the post's picture.</div>
+        <div id="linkPreviewBox" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;">
+          <button type="button" id="removeLinkPreviewBtn" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">✕</button>
+          <div id="linkPreviewImg" style="height:110px;background-size:cover;background-position:center;background-color:#dfe6f2;"></div>
+          <div style="padding:8px 10px;">
+            <div id="linkPreviewDomain" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;"></div>
+            <div id="linkPreviewTitle" style="font-size:13px;font-weight:600;color:var(--text);"></div>
+          </div>
+        </div>
+        <div class="field-error" id="err-link">Couldn't preview that link — check the URL and try again.</div>
+      </div>
+
+      <div class="field-error" id="err-media" style="margin-top:-8px;">Please attach a photo/video, or add a link with a preview.</div>
 
       <div class="form-group">
         <label>Description <span class="req">*</span></label>
@@ -629,6 +662,7 @@
     </div>
     <div id="mpBody"></div>
     <div class="form-actions">
+      <button type="button" class="btn-secondary" id="followPersonBtn" style="display:none;">☆ Follow</button>
       <button type="button" class="btn-primary" id="editProfileBtn" style="display:none;">Edit Profile</button>
     </div>
   </div>
@@ -976,7 +1010,8 @@ async function hydrateFromServer(){
 
     if(Array.isArray(s.clubs)){ clubs.length = 0; clubs.push(...s.clubs); }
     if(Array.isArray(s.feedPosts)){ feedPosts.length = 0; feedPosts.push(...s.feedPosts); }
-    if(Array.isArray(s.followedClubs)){ followedClubs.length = 0; followedClubs.push(...s.followedClubs); }
+    // Note: followedClubs/followedPeople are intentionally NOT hydrated from the shared server state —
+    // they're personal, per-account data kept in this browser's localStorage (see loadFollowState()).
     if(s.clubMeta){ Object.keys(clubMeta).forEach(k=>delete clubMeta[k]); Object.assign(clubMeta, s.clubMeta); }
     if(s.clubMembers){ Object.keys(clubMembers).forEach(k=>delete clubMembers[k]); Object.assign(clubMembers, s.clubMembers); }
     if(s.clubStories){ Object.keys(clubStories).forEach(k=>delete clubStories[k]); Object.assign(clubStories, s.clubStories); }
@@ -1096,7 +1131,62 @@ let currentClub = null; // which club's Club Manager account is "logged in" (onl
 let currentViewedClub = null; // which club's Individual Business Club Page is currently on screen — set the same way
 let currentStudentMemberId = null; // which student member "you" are logged in as (only meaningful when currentRole === "student")
 let currentMember = null; // {id, name, email, club, accountLevels} for the real logged-in account, or null if Public
-const followedClubs = ["CCA Business Club"]; // mock: the demo account follows its own club
+
+/* ---------------- FOLLOWING (personal — stored per-account in this browser, never shared site data) ----------------
+   Each logged-in account has its own follow list (clubs + people) and its own "have I opened this
+   post yet" history, kept in localStorage under that account's id. This intentionally does NOT ride
+   along with saveState()/autoSave() — those persist the shared site content everyone sees, whereas
+   who you personally follow is private to your account and browser. */
+let followedClubs = [];
+let followedPeople = []; // array of member ids (works for club-roster members and pending accounts alike)
+let viewedPostIds = [];
+function followStorageKey(kind){ return `ccaFollow_${kind}_${currentMember ? currentMember.id : "guest"}`; }
+function viewedStorageKey(){ return `ccaViewed_${currentMember ? currentMember.id : "guest"}`; }
+function loadFollowState(){
+  try{
+    followedClubs = JSON.parse(localStorage.getItem(followStorageKey("clubs")) || "[]");
+    followedPeople = JSON.parse(localStorage.getItem(followStorageKey("people")) || "[]");
+    viewedPostIds = JSON.parse(localStorage.getItem(viewedStorageKey()) || "[]");
+  }catch(e){ followedClubs=[]; followedPeople=[]; viewedPostIds=[]; }
+}
+function saveFollowState(){
+  try{
+    localStorage.setItem(followStorageKey("clubs"), JSON.stringify(followedClubs));
+    localStorage.setItem(followStorageKey("people"), JSON.stringify(followedPeople));
+  }catch(e){}
+}
+function markPostViewed(id){
+  if(!currentMember || viewedPostIds.includes(id)) return;
+  viewedPostIds.push(id);
+  try{ localStorage.setItem(viewedStorageKey(), JSON.stringify(viewedPostIds)); }catch(e){}
+}
+function isFollowingClub(name){ return followedClubs.includes(name); }
+function isFollowingPerson(id){ return followedPeople.includes(id); }
+function toggleFollowClub(name){
+  if(!currentMember){ toast("Log in to follow a club"); openAdminLoginModal(); return; }
+  const idx = followedClubs.indexOf(name);
+  if(idx>-1) followedClubs.splice(idx,1); else followedClubs.push(name);
+  saveFollowState();
+  renderClubPage();
+  renderFeed();
+}
+function toggleFollowPerson(id){
+  if(!currentMember){ toast("Log in to follow people"); openAdminLoginModal(); return; }
+  if(currentMember.id === id){ toast("You can't follow yourself"); return; }
+  const idx = followedPeople.indexOf(id);
+  if(idx>-1) followedPeople.splice(idx,1); else followedPeople.push(id);
+  saveFollowState();
+  renderFeed();
+}
+// A post is "boosted" to the top of the feed when it's from someone/someplace you follow and you
+// haven't opened it yet — this is what makes new content from people you follow surface first.
+function isPostBoosted(p){
+  if(!currentMember) return false;
+  const clubFollowed = followedClubs.includes(p.club);
+  const authorFollowed = p.authorId && followedPeople.includes(p.authorId);
+  if(!clubFollowed && !authorFollowed) return false;
+  return !viewedPostIds.includes(p.id);
+}
 
 // Administrators (staff) can delete any post/story. A Club Manager account can only delete posts/stories that belong to ITS OWN club.
 function canDelete(post){
@@ -1165,12 +1255,24 @@ function renameClub(oldName, newName){
   if(currentClub===oldName) currentClub = newName;
   if(currentViewedClub===oldName) currentViewedClub = newName;
   const fIdx = followedClubs.indexOf(oldName);
-  if(fIdx>-1) followedClubs[fIdx] = newName;
+  if(fIdx>-1){ followedClubs[fIdx] = newName; saveFollowState(); }
 
   rebuildHomeSchoolFilterOptions();
 }
 
 function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+
+// Renders a post's attached link as a clickable preview card — used as the "picture part" of a
+// post wherever media would otherwise go (feed, detail modal). Grid tiles use their own compact badge instead.
+function linkCardHtml(link){
+  return `<div class="link-card" onclick="event.stopPropagation(); window.open('${link.url.replace(/'/g,"\\'")}','_blank','noopener')">
+    <div class="link-card-img" style="${link.image ? `background-image:url('${link.image}');` : ""}"></div>
+    <div class="link-card-body">
+      <div class="link-card-domain">🔗 ${link.domain || ""}</div>
+      <div class="link-card-title">${(link.title||link.url).replace(/</g,"&lt;")}</div>
+    </div>
+  </div>`;
+}
 function toast(msg){
   const t=document.getElementById("toast");
   t.textContent=msg; t.classList.add("show");
@@ -1228,7 +1330,7 @@ function getFilteredFeedPosts(){
   const topic = document.getElementById("homeTopicFilter") ? document.getElementById("homeTopicFilter").value : "all";
   const time = document.getElementById("homeTimeFilter") ? document.getElementById("homeTimeFilter").value : "all";
   const now = new Date();
-  return feedPosts.filter(p=>{
+  const filtered = feedPosts.filter(p=>{
     if(school!=="all" && p.club!==school) return false;
     if(topic!=="all" && p.type!==topic) return false;
     if(time!=="all"){
@@ -1240,9 +1342,16 @@ function getFilteredFeedPosts(){
         if(time==="month" && diffDays>31) return false;
       }
     }
-    if(currentHomeFeedTab==="following" && !followedClubs.includes(p.club)) return false;
+    if(currentHomeFeedTab==="following"){
+      const clubFollowed = followedClubs.includes(p.club);
+      const authorFollowed = p.authorId && followedPeople.includes(p.authorId);
+      if(!clubFollowed && !authorFollowed) return false;
+    }
     return true;
   });
+  // Unread posts from people/clubs you follow bubble to the top, ahead of everything else —
+  // a stable sort keeps every other post in its existing (newest-first) order.
+  return filtered.slice().sort((a,b)=>(isPostBoosted(b)?1:0) - (isPostBoosted(a)?1:0));
 }
 
 function renderFeed(){
@@ -1258,6 +1367,7 @@ function renderFeed(){
           <div class="clubname">
             <span onclick="event.stopPropagation(); navigateToClub('${p.club.replace(/'/g,"\\'")}')" style="cursor:pointer;">${p.club}</span>
             ${p.confirmed?'<span class="check">✔</span>':''}
+            ${isPostBoosted(p) ? `<span class="new-badge">🔔 New from someone you follow</span>` : ""}
           </div>
           <div class="subline">${p.date} · Posted by ${p.responsible}</div>
         </div>
@@ -1271,7 +1381,7 @@ function renderFeed(){
           </div>
         </div>
       </div>
-      <div class="post-media">${p.media ? `<img src="${p.media}" style="width:100%;height:100%;object-fit:cover;">` : "📷 Photo / Video attached"}</div>
+      <div class="post-media">${p.link ? linkCardHtml(p.link) : (p.media ? `<img src="${p.media}" style="width:100%;height:100%;object-fit:cover;">` : "📷 Photo / Video attached")}</div>
       <div class="post-body"><div class="post-desc">${p.desc}</div></div>
       <div class="post-actions" onclick="event.stopPropagation()">
         <button onclick="toggleLike(this,${p.id})">❤️ <span class="likecount">${p.likes}</span></button>
@@ -1345,8 +1455,21 @@ function renderClubPage(){
   renderMeetingRecaps();
   renderClubReels();
   renderGrid(currentFilter);
+  renderFollowClubBtn();
   applyPermissions();
 }
+
+function renderFollowClubBtn(){
+  const btn = document.getElementById("followClubBtn");
+  if(!btn) return;
+  const following = isFollowingClub(currentViewedClub);
+  btn.textContent = following ? "★ Following" : "☆ Follow";
+  btn.classList.toggle("following", following);
+}
+document.getElementById("followClubBtn").addEventListener("click", ()=>{
+  toggleFollowClub(currentViewedClub);
+  renderFollowClubBtn();
+});
 
 /* ---------------- EVENT COUNTDOWN ---------------- */
 function countdownText(nextEvent){
@@ -1609,8 +1732,9 @@ function renderGrid(filter="all"){
   let list = filter==="all" ? clubList.slice() : clubList.filter(p=>p.type===filter);
   if(currentSort==="oldest") list = list.slice().reverse();
   grid.innerHTML = list.length ? list.map(p=>`
-    <div class="grid-block" draggable="${manage}" data-i="${clubList.indexOf(p)}" onclick="openDetail('grid', ${p.id})" style="${p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:""}">
+    <div class="grid-block" draggable="${manage}" data-i="${clubList.indexOf(p)}" onclick="openDetail('grid', ${p.id})" style="${p.link&&p.link.image?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.link.image}');background-size:cover;background-position:center;color:#fff;`:(p.media?`background-image:linear-gradient(rgba(18,33,59,.15),rgba(18,33,59,.55)),url('${p.media}');background-size:cover;background-position:center;color:#fff;`:"")}">
       ${canDelete(p) ? `<button class="delete-x" onclick="event.stopPropagation(); deletePost('grid', ${p.id})">✕</button>` : ""}
+      ${p.link ? `<span class="link-card-badge">🔗 ${p.link.domain||""}</span>` : ""}
       <span class="tag">${p.type}</span>
       ${p.label}
     </div>`).join("") : `<div class="form-hint">No posts match this filter.</div>`;
@@ -1713,6 +1837,9 @@ function openDetail(arrName, id){
   currentDetail = {arrName, id};
   renderDetail();
   document.getElementById("detailModal").classList.add("open");
+  const wasBoosted = isPostBoosted(p);
+  markPostViewed(id);
+  if(wasBoosted && arrName==="feed") renderFeed(); // drop its "New" badge / top-of-feed boost once opened
 }
 
 function closeDetailModal(){
@@ -1726,9 +1853,9 @@ function renderDetail(){
   const p = findById(arr, currentDetail.id);
   if(!p){ closeDetailModal(); return; }
 
-  document.getElementById("detailMedia").innerHTML = p.media
-    ? `<img src="${p.media}">`
-    : `📷 Photo / Video attached`;
+  document.getElementById("detailMedia").innerHTML = p.link
+    ? linkCardHtml(p.link)
+    : (p.media ? `<img src="${p.media}">` : `📷 Photo / Video attached`);
 
   document.getElementById("detailAvatar").textContent = initials(p.club || "CCA Business Club");
   document.getElementById("detailClub").innerHTML = `${p.club||"CCA Business Club"} ${p.confirmed?'<span class="check">✔</span>':''}`;
@@ -1796,7 +1923,7 @@ function applyPermissions(){
     btn.classList.toggle("locked", !allowed);
   });
   document.getElementById("acctAvatar").textContent =
-    currentRole==="public" ? "P" : currentRole==="student" ? "S" : currentRole==="staff" ? "Ad" : initials(currentClub);
+    currentMember ? initials(currentMember.name) : "P";
 
   const identityLabel = document.getElementById("identityLabel");
   const loginBtn = document.getElementById("loginBtn");
@@ -1865,12 +1992,14 @@ function applyMemberIdentity(member){
   currentRole = roleFromAccountLevels(member.accountLevels);
   if(currentRole==="business") currentClub = member.club;
   if(currentRole==="student") currentStudentMemberId = member.id;
+  loadFollowState(); // switch to this account's own personal follow list + viewed-posts history
 }
 function logOutLocally(){
   currentMember = null;
   currentRole = "public";
   currentStudentMemberId = null;
   localStorage.removeItem(SESSION_KEY);
+  loadFollowState(); // back to the guest (unpersonalized) follow state
 }
 
 function openAdminLoginModal(){ // login gate modal (name kept for backward compatibility with earlier code)
@@ -1979,7 +2108,7 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
 /* ---------------- HELP MODAL ---------------- */
 /* ---------------- RECORD STATUS / RESET TO DEFAULT (Administrator only, shared for every visitor) ---------------- */
 async function saveState(){
-  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, followedClubs, nextId };
+  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, nextId };
   try{
     const res = await fetch("/api/state", {
       method: "POST",
@@ -2005,7 +2134,7 @@ let autoSaveIndicatorTimer = null;
 function autoSave(){
   if(autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(async ()=>{
-    const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, followedClubs, nextId };
+    const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, nextId };
     const indicator = document.getElementById("autoSaveIndicator");
     try{
       const res = await fetch("/api/state", {
@@ -2132,6 +2261,18 @@ const helpTopics = [
     summary:"New sign-ups start as Public — an Administrator decides what they can do next.",
     purpose:"Keeps signup open to anyone while still requiring an Administrator to grant real access, instead of every new email automatically getting posting rights.",
     usage:"Find the new account via the search bar and open their profile — an Administrator can check Student/Club Manager/Administrator boxes there to grant access club-wide. To attach them to a specific club's roster instead, go to that club's \"Edit Page\" → Member Introduction, add a row, and type their email — their existing account auto-links (no duplicate is created) and they're removed from the unassigned Public pool."},
+  {id:25, title:"Your Own Account", keywords:["my account","my profile","edit my account","avatar","profile picture","account settings"],
+    summary:"Click your avatar in the top-right corner to view and edit your own account.",
+    purpose:"Lets anyone manage their own account information — bio, contact, grade, past positions — even if they haven't joined a club yet.",
+    usage:"Click the round avatar in the top-right of the page. It opens your own profile with an \"Edit Profile\" button, whether your account belongs to a club's roster or is still an unassigned Public account."},
+  {id:26, title:"Link Posts", keywords:["link","url","preview","share a link","website"],
+    summary:"Attach a link to a post and it shows a title/image preview instead of a photo.",
+    purpose:"Lets a club share an outside article, form, or page without needing a screenshot.",
+    usage:"In \"+ New Post\", paste a URL into the Link field and click \"Preview\" — the fetched title, image, and domain become the post's picture. A post needs either a photo/video or a link preview (not necessarily both)."},
+  {id:27, title:"Following People & Clubs", keywords:["follow", "following", "unfollow", "unread", "new posts", "notifications"],
+    summary:"Follow a club or a person so their new posts surface at the top of your feed.",
+    purpose:"Makes sure you don't miss updates from the clubs and people you care about most, without having to scroll to find them.",
+    usage:"Click \"☆ Follow\" on a club's page, or open someone's profile and click \"☆ Follow\" there. Any of their posts you haven't opened yet get a \"🔔 New\" badge and move to the top of your Home feed until you open them. Requires being logged in — Public browsing doesn't save a personal follow list."},
 ];
 
 function renderHelpList(query){
@@ -2250,17 +2391,57 @@ document.addEventListener("click",(e)=>{
 
 /* ---------------- NEW POST (mock upload) ---------------- */
 let pendingMedia = null; // data URL of the selected file, for preview + mock "upload"
+let pendingLink = null; // {url, title, description, image, domain} fetched via /api/link-preview
 
 function resetPostForm(){
   document.getElementById("newPostForm").reset();
   document.getElementById("postDate").value = new Date().toISOString().slice(0,10);
   pendingMedia = null;
+  pendingLink = null;
   const dz=document.getElementById("dropzone");
   dz.classList.remove("has-file");
   dz.innerHTML = `<span id="dropzoneLabel">Click or drag a file here to attach</span><input type="file" id="postMedia" accept="image/*,video/*">`;
   document.getElementById("postMedia").addEventListener("change", handleMediaSelect);
+  document.getElementById("linkPreviewBox").style.display = "none";
+  document.getElementById("postLinkUrl").disabled = false;
   document.querySelectorAll(".field-error").forEach(e=>e.classList.remove("show"));
 }
+
+async function fetchLinkPreview(){
+  const urlInput = document.getElementById("postLinkUrl");
+  const url = urlInput.value.trim();
+  const err = document.getElementById("err-link");
+  err.classList.remove("show");
+  if(!url) return;
+  const btn = document.getElementById("fetchLinkPreviewBtn");
+  const prevLabel = btn.textContent;
+  btn.textContent = "Loading…";
+  btn.disabled = true;
+  try{
+    const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    if(!data.ok){ err.classList.add("show"); return; }
+    pendingLink = { url: data.url, title: data.title, description: data.description, image: data.image, domain: data.domain };
+    document.getElementById("linkPreviewBox").style.display = "block";
+    document.getElementById("linkPreviewImg").style.backgroundImage = data.image ? `url('${data.image}')` : "none";
+    document.getElementById("linkPreviewDomain").textContent = data.domain;
+    document.getElementById("linkPreviewTitle").textContent = data.title;
+    urlInput.disabled = true;
+  }catch(e){
+    err.classList.add("show");
+  }finally{
+    btn.textContent = prevLabel;
+    btn.disabled = false;
+  }
+}
+document.getElementById("fetchLinkPreviewBtn").addEventListener("click", fetchLinkPreview);
+document.getElementById("postLinkUrl").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); fetchLinkPreview(); } });
+document.getElementById("removeLinkPreviewBtn").addEventListener("click", ()=>{
+  pendingLink = null;
+  document.getElementById("linkPreviewBox").style.display = "none";
+  document.getElementById("postLinkUrl").value = "";
+  document.getElementById("postLinkUrl").disabled = false;
+});
 
 function handleMediaSelect(e){
   const file = e.target.files[0];
@@ -2317,10 +2498,11 @@ document.getElementById("newPostForm").addEventListener("submit",(e)=>{
   const type = document.getElementById("postType").value;
   const commentsOpen = document.getElementById("postCommentsOpen").checked;
 
-  // Validate against the club's posting rules: media + description + date + responsible contact are all required.
+  // Validate against the club's posting rules: (media OR a link preview) + description + date + responsible contact are all required.
   let valid = true;
   const setErr = (id, show)=>{ document.getElementById(id).classList.toggle("show", show); };
-  setErr("err-media", !pendingMedia); if(!pendingMedia) valid=false;
+  const hasPicture = !!pendingMedia || !!pendingLink;
+  setErr("err-media", !hasPicture); if(!hasPicture) valid=false;
   setErr("err-desc", !desc); if(!desc) valid=false;
   setErr("err-responsible", !responsible); if(!responsible) valid=false;
   setErr("err-contact", !contact); if(!contact) valid=false;
@@ -2334,7 +2516,8 @@ document.getElementById("newPostForm").addEventListener("submit",(e)=>{
   const newPost = {
     id: nextId++, type, label: desc.length>40 ? desc.slice(0,40)+"…" : desc,
     club: currentViewedClub, confirmed:true, date: dateLabel, responsible: `${responsible} (${contact})`,
-    desc, commentsOpen, likes:0, comments:[], media: mediaUrl
+    desc, commentsOpen, likes:0, comments:[], media: mediaUrl, link: pendingLink,
+    authorId: currentMember ? currentMember.id : null
   };
   clubGridPosts[currentViewedClub].unshift(newPost);
   feedPosts.unshift(newPost);
@@ -2415,6 +2598,17 @@ function openMemberProfile(club, idx){
   editBtn.style.display = canEdit ? "inline-flex" : "none";
   editBtn.onclick = ()=>{ closeMemberProfile(); openEditMemberModal(club, idx); };
 
+  const followBtn = document.getElementById("followPersonBtn");
+  const isSelf = currentMember && currentMember.id === m.id;
+  followBtn.style.display = isSelf ? "none" : "inline-flex"; // can't follow yourself
+  followBtn.textContent = isFollowingPerson(m.id) ? "★ Following" : "☆ Follow";
+  followBtn.classList.toggle("following", isFollowingPerson(m.id));
+  followBtn.onclick = ()=>{
+    toggleFollowPerson(m.id);
+    followBtn.textContent = isFollowingPerson(m.id) ? "★ Following" : "☆ Follow";
+    followBtn.classList.toggle("following", isFollowingPerson(m.id));
+  };
+
   document.getElementById("memberProfileModal").classList.add("open");
 }
 function closeMemberProfile(){
@@ -2422,6 +2616,17 @@ function closeMemberProfile(){
 }
 document.getElementById("closeMemberProfileModal").addEventListener("click", closeMemberProfile);
 document.getElementById("memberProfileModal").addEventListener("click",(e)=>{ if(e.target.id==="memberProfileModal") closeMemberProfile(); });
+
+// Clicking the account avatar in the top bar always opens the logged-in account's own profile —
+// whether or not that account belongs to a club roster (pending/Public accounts included), so
+// anyone can view and edit their own account information without ever joining a club.
+function openOwnProfile(){
+  if(!currentMember){ openAdminLoginModal(); return; }
+  const found = findMemberById(currentMember.id);
+  if(!found){ toast("Couldn't find your account profile"); return; }
+  openMemberProfile(found.club, found.idx);
+}
+document.getElementById("acctAvatar").addEventListener("click", openOwnProfile);
 
 /* ---------------- EDIT MEMBER PROFILE (each account edits its own; Administrators edit any + grant/revoke levels) ---------------- */
 let editingMemberRef = null; // {club, idx}
@@ -2691,6 +2896,7 @@ async function initApp(){
   if(restored){
     applyPermissions();
     renderFeed();
+    renderFollowClubBtn(); // reflect this restored account's own follow list, not the guest default rendered above
   } else {
     openAdminLoginModal(); // no valid session on this device — must log in (or sign up) or choose Public Account Mode
   }
