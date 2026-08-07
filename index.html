@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="20260806-1">
+<html lang="en" data-build="20260807-1">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -219,6 +219,33 @@
   .recap-card .recap-actions-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
   .recap-card ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6;}
   .recap-card .recap-delete{float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;}
+
+  /* ---------- CLUB CALENDAR ---------- */
+  .calendar-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+  .calendar-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cal-month-label{font-weight:700;font-size:14px;color:var(--navy2);}
+  .calendar-nav .icon-btn{padding:4px 10px;}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dow{font-size:10px;font-weight:700;color:var(--muted);text-align:center;padding:2px 0;text-transform:uppercase;}
+  .cal-day{
+    aspect-ratio:1/1;border-radius:8px;background:var(--bg,#f4f6fb);font-size:11px;color:var(--text);
+    padding:4px;position:relative;cursor:default;display:flex;flex-direction:column;
+  }
+  .cal-day.empty{background:transparent;}
+  .cal-day.today{outline:2px solid var(--gold);}
+  .cal-day.has-event{cursor:pointer;background:#eaf0fb;}
+  .cal-day .cal-daynum{font-weight:600;}
+  .cal-day .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--navy);margin-top:auto;align-self:center;}
+  .upcoming-event{
+    display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);
+  }
+  .upcoming-event:last-child{border-bottom:none;}
+  .ue-date{flex:0 0 52px;text-align:center;background:var(--navy);color:#fff;border-radius:8px;padding:4px 2px;font-size:10px;font-weight:700;line-height:1.3;}
+  .ue-date .ue-day{font-size:15px;}
+  .ue-body{flex:1;}
+  .ue-name{font-size:13px;font-weight:600;}
+  .ue-desc{font-size:12px;color:var(--muted);margin-top:2px;}
+  .ue-delete{color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;}
   .members-row{display:flex;gap:14px;padding:14px 18px;overflow-x:auto;}
   .member-card{flex:0 0 auto;text-align:center;width:64px;cursor:pointer;}
   .member-card .avatar{width:48px;height:48px;font-size:16px;margin:0 auto 6px;}
@@ -530,6 +557,21 @@
     <div class="story-bar" id="storyRow"></div>
 
     <div class="grid-toolbar">
+      <div class="section-label" style="margin:0;">Calendar</div>
+      <button class="new-post-btn" id="newEventBtn" style="padding:6px 12px;font-size:12px;">+ Add Event</button>
+    </div>
+    <div class="calendar-wrap">
+      <div class="calendar-nav">
+        <button type="button" class="icon-btn" id="calPrevBtn">‹</button>
+        <div class="cal-month-label" id="calMonthLabel"></div>
+        <button type="button" class="icon-btn" id="calNextBtn">›</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="section-label" style="margin:14px 0 4px;">Upcoming Events</div>
+      <div id="upcomingEventsList"></div>
+    </div>
+
+    <div class="grid-toolbar">
       <div class="section-label" style="margin:0;">Meeting Recaps</div>
       <button class="new-post-btn" id="newRecapBtn" style="padding:6px 12px;font-size:12px;">+ Add Recap</button>
     </div>
@@ -832,6 +874,31 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="addEventModal">
+  <div class="modal" style="max-width:400px;">
+    <button class="close" id="closeAddEventModal">✕</button>
+    <h3>Add Calendar Event</h3>
+    <div class="form-group">
+      <label>Event Name <span class="req">*</span></label>
+      <input autocomplete="off" type="text" id="eventName" placeholder="e.g. Pitch Night">
+      <div class="field-error" id="err-eventname">Please enter an event name.</div>
+    </div>
+    <div class="form-group">
+      <label>Date <span class="req">*</span></label>
+      <input autocomplete="off" type="date" id="eventDate">
+      <div class="field-error" id="err-eventdate">Please pick a date.</div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="eventDesc" placeholder="Optional details — location, what to bring, etc."></textarea>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" id="cancelEventBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="saveEventBtn">Add Event</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="reelViewModal">
   <div class="modal reel-modal">
     <button class="detail-close" id="closeReelViewModal">✕</button>
@@ -911,6 +978,36 @@ const clubMeta = {
   "Lincoln HS Econ Society": {tagline:"Lincoln High School · Economics & Finance Club", nextEvent:{name:"Market Simulation Day", date:"2026-08-20"}},
   "Bayview Entrepreneurs": {tagline:"Bayview High School · Student Entrepreneurship Club", nextEvent:{name:"Fall Pitch Workshop", date:"2026-08-28"}},
 };
+
+// Each club's full event calendar (multiple dated events, not just one countdown). The home page card
+// and the club page's countdown both now derive from the SOONEST future entry here instead of a single
+// manually-typed nextEvent — clubMeta[club].nextEvent is kept only as a one-time migration seed (see
+// nextClubEvent()) for clubs that had a countdown set before this feature existed.
+const clubEvents = {
+  "CCA Business Club": [
+    {id:1, name:"National Economics Challenge — Regional Round", date:"2026-09-12", desc:"Regional qualifying round — practice teams present at CCA."},
+    {id:2, name:"Weekly Practice Round", date:"2026-08-14", desc:"Weekly NEC practice session, room TBD by D. Park."},
+    {id:3, name:"Pitch Night", date:"2026-08-22", desc:"Members pitch business ideas to officers and guest judges."},
+  ],
+  "Lincoln HS Econ Society": [
+    {id:4, name:"Market Simulation Day", date:"2026-08-20", desc:"Full-day trading simulation open to all Bay Area business club members."},
+    {id:5, name:"Guest Speaker: Local Economist", date:"2026-09-05", desc:"Guest talk on regional labor markets."},
+  ],
+  "Bayview Entrepreneurs": [
+    {id:6, name:"Fall Pitch Workshop", date:"2026-08-28", desc:"Workshop on structuring a pitch deck ahead of the fall fundraiser."},
+    {id:7, name:"Sponsor Outreach Deadline", date:"2026-09-01", desc:"Deadline to finalize sponsor packets for the fall fundraiser."},
+  ],
+};
+// One-time fallback for a club whose clubEvents list is empty (e.g. after a rename) but which still
+// has an old-style single clubMeta.nextEvent — keeps the countdown from silently disappearing.
+function nextClubEvent(club){
+  const list = (clubEvents[club] || []).slice().sort((a,b)=> a.date.localeCompare(b.date));
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = list.find(e=> e.date >= today);
+  if(upcoming) return upcoming;
+  const legacy = clubMeta[club] && clubMeta[club].nextEvent;
+  return (legacy && legacy.name && legacy.date) ? legacy : null;
+}
 
 const clubMeetingRecaps = {
   "CCA Business Club": [
@@ -1038,6 +1135,7 @@ function applyServerState(s){
   if(s.clubMembers){ Object.keys(clubMembers).forEach(k=>delete clubMembers[k]); Object.assign(clubMembers, s.clubMembers); }
   if(s.clubStories){ Object.keys(clubStories).forEach(k=>delete clubStories[k]); Object.assign(clubStories, s.clubStories); }
   if(s.clubGridPosts){ Object.keys(clubGridPosts).forEach(k=>delete clubGridPosts[k]); Object.assign(clubGridPosts, s.clubGridPosts); }
+  if(s.clubEvents){ Object.keys(clubEvents).forEach(k=>delete clubEvents[k]); Object.assign(clubEvents, s.clubEvents); }
   if(s.clubReels){ Object.keys(clubReels).forEach(k=>delete clubReels[k]); Object.assign(clubReels, s.clubReels); }
   if(s.clubMeetingRecaps){ Object.keys(clubMeetingRecaps).forEach(k=>delete clubMeetingRecaps[k]); Object.assign(clubMeetingRecaps, s.clubMeetingRecaps); }
   if(Array.isArray(s.pendingAccounts)){ pendingAccounts.length = 0; pendingAccounts.push(...s.pendingAccounts); }
@@ -1187,6 +1285,32 @@ function applySeedDefaults(){
 
 function getArr(name){ return name==="feed" ? feedPosts : clubGridPosts[currentViewedClub]; }
 function findById(arr, id){ return arr.find(x=>x.id===id); }
+// A new post starts as the SAME object reference in feedPosts and clubGridPosts[club] (see newPostForm
+// submit handler), which keeps likes/comments in sync automatically — but only until that state round-trips
+// through the server as JSON (autoSave -> /api/state -> another account's pollForUpdates, or even this
+// browser's own next page load). JSON.parse always creates brand-new objects, so that reference sharing
+// silently breaks the first time ANY account's browser re-hydrates from the server — after that, the
+// feedPosts copy and the clubGridPosts copy of the same post are two separate objects, and a comment/like
+// added on the individual club page stops showing up on the Home feed (and vice versa). Fix: after every
+// like/comment mutation, explicitly copy the result onto every other copy of that same post id.
+function findAllPostRefs(id){
+  const refs = [];
+  const pf = feedPosts.find(x=>x.id===id);
+  if(pf) refs.push(pf);
+  Object.keys(clubGridPosts).forEach(k=>{
+    const pg = clubGridPosts[k].find(x=>x.id===id);
+    if(pg) refs.push(pg);
+  });
+  return refs;
+}
+function syncPostAcrossViews(sourcePost){
+  findAllPostRefs(sourcePost.id).forEach(r=>{
+    if(r===sourcePost) return;
+    r.likes = sourcePost.likes;
+    r.likedBy = sourcePost.likedBy;
+    r.comments = sourcePost.comments;
+  });
+}
 function findReelById(id){
   for(const c of clubs){
     const r = clubReels[c].find(x=>x.id===id);
@@ -1372,6 +1496,8 @@ function renameClub(oldName, newName){
 
   clubMeta[newName] = clubMeta[oldName]; delete clubMeta[oldName];
 
+  clubEvents[newName] = clubEvents[oldName] || []; delete clubEvents[oldName];
+
   clubMembers[newName] = clubMembers[oldName]; delete clubMembers[oldName];
 
   clubStories[newName] = clubStories[oldName]; delete clubStories[oldName];
@@ -1441,7 +1567,7 @@ function renderClubsRow(){
   const row=document.getElementById("clubsRow");
   if(!row) return;
   row.innerHTML = clubs.map(c=>{
-    const cd = countdownText(clubMeta[c].nextEvent);
+    const cd = countdownText(nextClubEvent(c));
     return `
     <div class="club-card" onclick="navigateToClub('${c.replace(/'/g,"\\'")}')">
       <div class="cc-banner"></div>
@@ -1571,6 +1697,7 @@ function toggleLike(btn,id){
   const p=findById(feedPosts,id);
   if(!p) return;
   const liked = applyLikeToggle(p);
+  syncPostAcrossViews(p);
   btn.classList.toggle("liked", liked);
   btn.querySelector(".likecount").textContent = p.likes;
   if(currentViewedClub===p.club) renderGrid(currentFilter); // keep the club page's grid tile in sync too
@@ -1588,6 +1715,7 @@ function addComment(id){
   if(!input.value.trim()) return;
   const p=findById(feedPosts,id);
   p.comments.push({id: nextId++, name: currentIdentityName(), text:input.value.trim()});
+  syncPostAcrossViews(p);
   renderFeed();
   document.getElementById(`comments-${id}`).classList.add("open");
   autoSave();
@@ -1596,6 +1724,7 @@ function addComment(id){
 /* ---------------- RENDER: CLUB PAGE ---------------- */
 function navigateToClub(name){
   if(!clubs.includes(name)) return;
+  if(currentViewedClub !== name) calViewYear = null; // reset calendar view to the new club's own upcoming month
   currentViewedClub = name;
   document.querySelectorAll(".pagenav button").forEach(b=>b.classList.remove("active"));
   document.querySelector('.pagenav button[data-page="club"]').classList.add("active");
@@ -1612,6 +1741,7 @@ function renderClubPage(){
   renderMembers();
   renderStories();
   renderEventCountdown();
+  renderCalendar();
   renderMeetingRecaps();
   renderClubReels();
   renderGrid(currentFilter);
@@ -1646,10 +1776,141 @@ function countdownText(nextEvent){
 function renderEventCountdown(){
   const el = document.getElementById("clubEventCountdown");
   if(!el) return;
-  const text = countdownText(clubMeta[currentViewedClub].nextEvent);
+  const text = countdownText(nextClubEvent(currentViewedClub));
   el.textContent = text || "";
   el.style.display = text ? "inline-flex" : "none";
 }
+
+/* ---------------- CLUB CALENDAR (multiple dated events per club) ---------------- */
+// Which month the grid is currently showing, per club — defaults to the month of that club's soonest
+// upcoming event (so opening the page doesn't land you on a blank current month with nothing to see).
+let calViewYear = null, calViewMonth = null; // 0-indexed month
+function ensureCalView(){
+  if(calViewYear!==null) return;
+  const upcoming = nextClubEvent(currentViewedClub);
+  const base = upcoming ? new Date(upcoming.date+"T00:00:00") : new Date();
+  calViewYear = base.getFullYear();
+  calViewMonth = base.getMonth();
+}
+function formatEventDate(iso){
+  const d = new Date(iso+"T00:00:00");
+  if(isNaN(d.getTime())) return {mon:"", day:iso};
+  return { mon: d.toLocaleDateString(undefined,{month:"short"}), day: d.getDate() };
+}
+function renderCalendar(){
+  const grid = document.getElementById("calendarGrid");
+  const label = document.getElementById("calMonthLabel");
+  const list = document.getElementById("upcomingEventsList");
+  if(!grid || !label || !list) return;
+  ensureCalView();
+  const club = currentViewedClub;
+  const events = (clubEvents[club] || []).slice();
+  const manage = canManageClubPage();
+
+  label.textContent = new Date(calViewYear, calViewMonth, 1).toLocaleDateString(undefined,{month:"long", year:"numeric"});
+
+  const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+  const startDow = firstOfMonth.getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0,10);
+  const eventsByDay = {}; // "YYYY-MM-DD" -> [events]
+  events.forEach(e=>{ (eventsByDay[e.date] = eventsByDay[e.date]||[]).push(e); });
+
+  const dows = ["S","M","T","W","T","F","S"];
+  let cells = dows.map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  for(let i=0;i<startDow;i++) cells += `<div class="cal-day empty"></div>`;
+  for(let day=1; day<=daysInMonth; day++){
+    const iso = `${calViewYear}-${String(calViewMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const dayEvents = eventsByDay[iso] || [];
+    const isToday = iso===todayIso;
+    cells += `<div class="cal-day${isToday?" today":""}${dayEvents.length?" has-event":""}" ${dayEvents.length?`onclick="showDayEvents('${iso}')"`:""}>
+      <div class="cal-daynum">${day}</div>
+      ${dayEvents.length ? `<div class="cal-dot"></div>` : ""}
+    </div>`;
+  }
+  grid.innerHTML = cells;
+
+  const upcoming = events.filter(e=>e.date >= todayIso).sort((a,b)=> a.date.localeCompare(b.date));
+  list.innerHTML = upcoming.length ? upcoming.map(e=>{
+    const {mon, day} = formatEventDate(e.date);
+    return `<div class="upcoming-event">
+      <div class="ue-date"><div>${mon}</div><div class="ue-day">${day}</div></div>
+      <div class="ue-body">
+        <div class="ue-name">${e.name}</div>
+        ${e.desc ? `<div class="ue-desc">${e.desc}</div>` : ""}
+      </div>
+      ${manage ? `<button class="ue-delete" onclick="deleteClubEvent(${e.id})">🗑</button>` : ""}
+    </div>`;
+  }).join("") : `<div class="form-hint">No upcoming events. ${manage ? "Click \"+ Add Event\" to schedule one." : ""}</div>`;
+}
+function showDayEvents(iso){
+  const events = (clubEvents[currentViewedClub] || []).filter(e=>e.date===iso);
+  if(!events.length) return;
+  const {mon, day} = formatEventDate(iso);
+  toast(`${mon} ${day}: ${events.map(e=>e.name).join(", ")}`);
+}
+document.getElementById("calPrevBtn").addEventListener("click", ()=>{
+  ensureCalView();
+  calViewMonth--; if(calViewMonth<0){ calViewMonth=11; calViewYear--; }
+  renderCalendar();
+});
+document.getElementById("calNextBtn").addEventListener("click", ()=>{
+  ensureCalView();
+  calViewMonth++; if(calViewMonth>11){ calViewMonth=0; calViewYear++; }
+  renderCalendar();
+});
+function deleteClubEvent(id){
+  askConfirm("Delete this calendar event? This can't be undone.", ()=>{
+    const club = currentViewedClub;
+    clubEvents[club] = (clubEvents[club]||[]).filter(e=>e.id!==id);
+    renderCalendar();
+    renderEventCountdown();
+    renderClubsRow();
+    toast("Event deleted");
+    autoSave();
+  });
+}
+function openAddEventModal(){
+  if(!canManageClubPage()){ toast("You don't have permission to add an event for this club"); return; }
+  document.getElementById("eventName").value = "";
+  document.getElementById("eventDate").value = "";
+  document.getElementById("eventDesc").value = "";
+  document.getElementById("err-eventname").classList.remove("show");
+  document.getElementById("err-eventdate").classList.remove("show");
+  document.getElementById("addEventModal").classList.add("open");
+}
+function closeAddEventModal(){
+  document.getElementById("addEventModal").classList.remove("open");
+}
+document.getElementById("newEventBtn").addEventListener("click", openAddEventModal);
+document.getElementById("closeAddEventModal").addEventListener("click", closeAddEventModal);
+document.getElementById("cancelEventBtn").addEventListener("click", closeAddEventModal);
+document.getElementById("addEventModal").addEventListener("click",(e)=>{ if(e.target.id==="addEventModal") closeAddEventModal(); });
+document.getElementById("saveEventBtn").addEventListener("click", ()=>{
+  if(!canManageClubPage()){ toast("You don't have permission to add an event for this club"); return; }
+  const name = document.getElementById("eventName").value.trim();
+  const date = document.getElementById("eventDate").value;
+  const desc = document.getElementById("eventDesc").value.trim();
+  const nameErr = document.getElementById("err-eventname");
+  const dateErr = document.getElementById("err-eventdate");
+  let valid = true;
+  nameErr.classList.toggle("show", !name); if(!name) valid=false;
+  dateErr.classList.toggle("show", !date); if(!date) valid=false;
+  if(!valid) return;
+
+  const club = currentViewedClub;
+  if(!clubEvents[club]) clubEvents[club] = [];
+  clubEvents[club].push({id: nextId++, name, date, desc});
+  // Jump the calendar view to the month of the event just added, so it's visible right away.
+  const d = new Date(date+"T00:00:00");
+  calViewYear = d.getFullYear(); calViewMonth = d.getMonth();
+  renderCalendar();
+  renderEventCountdown();
+  renderClubsRow();
+  closeAddEventModal();
+  toast(`Event added to ${club}'s calendar`);
+  autoSave();
+});
 
 /* ---------------- MEETING RECAPS ---------------- */
 function renderMeetingRecaps(){
@@ -1984,6 +2245,7 @@ function deleteComment(arrName, postId, commentId){
   const idx = p.comments.findIndex(c=>c.id===commentId);
   if(idx<0) return;
   p.comments.splice(idx,1);
+  syncPostAcrossViews(p);
   renderFeed();
   renderGrid(currentFilter);
   if(currentDetail && currentDetail.id===postId) renderDetail();
@@ -2061,6 +2323,7 @@ function toggleLikeDetail(btn){
   const p = findById(arr, currentDetail.id);
   if(!p) return;
   const liked = applyLikeToggle(p);
+  syncPostAcrossViews(p);
   btn.classList.toggle("liked", liked);
   document.getElementById("detailLikeCount").textContent = p.likes;
   renderFeed();
@@ -2076,6 +2339,7 @@ function addDetailComment(){
   const arr = getArr(currentDetail.arrName);
   const p = findById(arr, currentDetail.id);
   p.comments.push({id: nextId++, name: currentIdentityName(), text: input.value.trim()});
+  syncPostAcrossViews(p);
   renderDetail();
   renderFeed();
   renderGrid(currentFilter);
@@ -2141,6 +2405,10 @@ function applyPermissions(){
   const newRecapBtn=document.getElementById("newRecapBtn");
   if(newRecapBtn) newRecapBtn.style.display = manage ? "flex" : "none";
   renderMeetingRecaps(); // re-render so each recap's delete button reflects the current permission
+
+  const newEventBtn=document.getElementById("newEventBtn");
+  if(newEventBtn) newEventBtn.style.display = manage ? "flex" : "none";
+  renderCalendar(); // re-render so each event's delete button reflects the current permission
 
   const isAdmin = currentRole==="staff";
   const recordBtn=document.getElementById("recordStatusBtn");
@@ -2290,7 +2558,7 @@ document.querySelectorAll(".pagenav button").forEach(btn=>{
 /* ---------------- HELP MODAL ---------------- */
 /* ---------------- RECORD STATUS / RESET TO DEFAULT (Administrator only, shared for every visitor) ---------------- */
 async function saveState(){
-  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, nextId };
+  const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubEvents, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, nextId };
   try{
     const res = await fetch("/api/state", {
       method: "POST",
@@ -2316,7 +2584,7 @@ let autoSaveIndicatorTimer = null;
 function autoSave(){
   if(autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(async ()=>{
-    const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, nextId };
+    const payload = { clubs, clubMeta, clubMembers, clubStories, clubGridPosts, clubEvents, clubReels, clubMeetingRecaps, pendingAccounts, feedPosts, nextId };
     const indicator = document.getElementById("autoSaveIndicator");
     try{
       const res = await fetch("/api/state", {
@@ -2434,7 +2702,11 @@ const helpTopics = [
   {id:22, title:"Event Countdown", keywords:["countdown","event","days until","upcoming event","national economics challenge"],
     summary:"A live countdown to each club's next big event, shown on its page and its home page card.",
     purpose:"Keeps everyone aware of how much time is left before the club's next major event (like a competition round).",
-    usage:"Club Managers and Administrators set the event name and date from \"Edit Page\" on the club's own page. It shows as a badge (e.g. \"🗓 12 days until...\") until the date passes; leave the event name blank to hide it."},
+    usage:"The countdown badge (e.g. \"🗓 12 days until...\") automatically shows the soonest upcoming event from that club's Calendar — add or edit events there to change it."},
+  {id:29, title:"Club Calendar", keywords:["calendar","events","schedule","upcoming events","month view","add event"],
+    summary:"A month-grid calendar plus an upcoming-events list on each club's page.",
+    purpose:"Gives each club a real schedule of every meeting, competition, and workshop instead of just one countdown — members can see what's coming up at a glance.",
+    usage:"On a club's page, use the ‹ › arrows to browse months; days with an event show a dot and are clickable for a quick summary. Club Managers and Administrators can click \"+ Add Event\" to add a name, date, and optional description, and can delete any event from the Upcoming Events list below the calendar."},
   {id:23, title:"Finding People (Search Bar)", keywords:["search","find","lookup","member search","pending account","public account"],
     summary:"Typing a name or email in the top search bar shows matching people, not just posts.",
     purpose:"Lets Administrators (and everyone else) quickly find a specific person's profile — including new Public-mode accounts that aren't on any club roster yet.",
